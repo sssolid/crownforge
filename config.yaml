@@ -39,6 +39,7 @@ files:
   measurement_validation_report: "output/measurement_validation_report.xlsx"
   cost_discrepancy_report: "output/cost_discrepancy_report.xlsx"
   kit_components_report: "output/kit_components_report.xlsx"
+  marketing_validation_report: "output/marketing_validation_report.xlsx"
 
   # Directories
   backup_dir: "backups"
@@ -108,6 +109,15 @@ validation:
     - "all markets"
     - "until "
     - "production"
+
+marketing_descriptions:
+  enabled: true
+  require_jeep_description: true
+  require_non_jeep_description: false
+  max_description_length: 500
+  min_description_length: 10
+  validate_content_quality: true
+  check_placeholder_text: true
 
 # Processing Configuration
 processing:
@@ -228,6 +238,7 @@ error_handling:
 workflow:
   enabled_steps:
     - "applications"
+    - "marketing_descriptions"
     - "popularity_codes"
     - "sdc_template"
     - "partshub_template"

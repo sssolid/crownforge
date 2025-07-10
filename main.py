@@ -1,7 +1,6 @@
-#!/usr/bin/env python3
+# src/main.py
 """
-Main Application Runner - Automotive Parts Application Parser
-Integrated version with workflow orchestration and enhanced features
+Enhanced main application entry point with improved error handling and logging.
 """
 
 import sys
@@ -10,291 +9,133 @@ import argparse
 from pathlib import Path
 from typing import Optional
 import traceback
+import signal
+from datetime import datetime
 
-from src.jvm_manager import start_jvm_once
-
-# Add the project root to Python path
+# Add project root to Python path
 PROJECT_ROOT = Path(__file__).parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
-# Import our modules
-from src.utils import ConfigManager, FileUtils, performance_monitor
-from src.workflow_service import WorkflowService
+from src.application.bootstrap.application_bootstrap import ApplicationContainer
+from src.infrastructure.configuration.configuration_manager import EnhancedConfigurationManager
 
-# Progress bar support
-try:
-    from tqdm import tqdm
-
-    TQDM_AVAILABLE = True
-except ImportError:
-    TQDM_AVAILABLE = False
-    print("Warning: tqdm not available. Progress bars will be disabled.")
+# Global container for graceful shutdown
+app_container: Optional[ApplicationContainer] = None
 
 
-def setup_logging(config_manager: ConfigManager):
-    """Setup logging configuration"""
-    log_level = config_manager.get("logging.level", "INFO")
-    log_format = config_manager.get("logging.format",
-                                    "%(asctime)s - %(name)s - %(levelname)s - %(message)s")
-    console_output = config_manager.get("logging.console_output", True)
-
-    # Setup file logging
-    log_file = config_manager.get("files.log_file", "logs/application_parser.log")
-    FileUtils.ensure_directory(Path(log_file).parent)
-
-    # Create handlers
-    handlers = [logging.FileHandler(log_file)]
-    if console_output:
-        handlers.append(logging.StreamHandler(sys.stdout))
-
-    logging.basicConfig(
-        level=getattr(logging, log_level.upper()),
-        format=log_format,
-        handlers=handlers
+def setup_logging(config_manager: EnhancedConfigurationManager) -> None:
+    """Setup comprehensive logging configuration."""
+    log_level = config_manager.get_value("logging.level", "INFO")
+    log_format = config_manager.get_value(
+        "logging.format",
+        "%(asctime)s - %(name)s - %(levelname)s - [%(filename)s:%(lineno)d] - %(message)s"
     )
+    console_output = config_manager.get_value("logging.console_output", True)
+
+    # Ensure log directory exists
+    log_file = config_manager.get_value("files.log_file", "logs/application.log")
+    Path(log_file).parent.mkdir(parents=True, exist_ok=True)
+
+    # Configure root logger
+    root_logger = logging.getLogger()
+    root_logger.setLevel(getattr(logging, log_level.upper()))
+
+    # Clear existing handlers
+    root_logger.handlers.clear()
+
+    # File handler
+    file_handler = logging.FileHandler(log_file, mode='a', encoding='utf-8')
+    file_handler.setLevel(getattr(logging, log_level.upper()))
+    file_formatter = logging.Formatter(log_format)
+    file_handler.setFormatter(file_formatter)
+    root_logger.addHandler(file_handler)
+
+    # Console handler
+    if console_output:
+        console_handler = logging.StreamHandler(sys.stdout)
+        console_handler.setLevel(getattr(logging, log_level.upper()))
+        console_formatter = logging.Formatter(
+            "%(asctime)s - %(levelname)s - %(message)s"
+        )
+        console_handler.setFormatter(console_formatter)
+        root_logger.addHandler(console_handler)
 
     # Set module-specific log levels
-    module_loggers = config_manager.get("logging.loggers", {})
+    module_loggers = config_manager.get_value("logging.loggers", {})
     for module, level in module_loggers.items():
         logging.getLogger(module).setLevel(getattr(logging, level.upper()))
 
+    logging.info("Logging configuration completed")
 
-def validate_dependencies(config_manager: ConfigManager) -> bool:
-    """Validate that all required files and dependencies exist"""
+
+def setup_signal_handlers() -> None:
+    """Setup signal handlers for graceful shutdown."""
+
+    def signal_handler(signum, frame):
+        logger = logging.getLogger(__name__)
+        logger.info(f"Received signal {signum}, initiating graceful shutdown...")
+
+        if app_container:
+            app_container.shutdown()
+
+        sys.exit(0)
+
+    signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
+
+
+def validate_environment(config_manager: EnhancedConfigurationManager) -> bool:
+    """Validate application environment and dependencies."""
     logger = logging.getLogger(__name__)
     errors = []
 
     # Check required files
     required_files = [
-        config_manager.get("files.lookup_file"),
-        config_manager.get("database.filemaker.dsn_file_path")
+        config_manager.get_value("files.lookup_file"),
+        config_manager.get_value("database.filemaker.fmjdbc_jar_path"),
+        config_manager.get_value("database.iseries.jt400_jar_path")
     ]
 
     for file_path in required_files:
         if file_path and not Path(file_path).exists():
             errors.append(f"Required file not found: {file_path}")
 
-    # Check optional files (warn if missing)
-    optional_files = [
-        config_manager.get("files.verification_file"),
-        config_manager.get("files.sdc_blank_template"),
-        config_manager.get("files.missing_parts_list")
-    ]
-
-    for file_path in optional_files:
-        if file_path and not Path(file_path).exists():
-            logger.warning(f"Optional file not found: {file_path}")
-
     # Check Python dependencies
     try:
         import pandas
         import openpyxl
-        import jaydebeapi  # For AS400 connection
+        import jaydebeapi
+        import jpype
     except ImportError as e:
         errors.append(f"Missing Python dependency: {e}")
 
-    # Check progress bar availability if enabled
-    if config_manager.get("monitoring.enable_progress_bars", False) and not TQDM_AVAILABLE:
-        logger.warning("Progress bars requested but tqdm not available")
+    # Validate configuration
+    config_errors = config_manager.validate_configuration()
+    errors.extend(config_errors)
 
     if errors:
+        logger.error("Environment validation failed:")
         for error in errors:
-            logger.error(error)
+            logger.error(f"  - {error}")
         return False
 
+    logger.info("Environment validation passed")
     return True
 
 
-def backup_existing_outputs(config_manager: ConfigManager):
-    """Backup existing output files if they exist"""
-    backup_dir = config_manager.get("files.backup_dir", "backups")
-
-    output_files = [
-        config_manager.get("files.application_data"),
-        config_manager.get("files.popularity_codes"),
-        config_manager.get("files.sdc_populated_template"),
-        config_manager.get("files.sdc_final_template"),
-        config_manager.get("files.upc_validation_report")
-    ]
-
-    for output_file in output_files:
-        if output_file and Path(output_file).exists():
-            backup_path = FileUtils.backup_file(output_file, backup_dir)
-            if backup_path:
-                logging.info(f"Backup created: {backup_path}")
-
-
-def create_progress_bar(description: str, total: int, enabled: bool = True):
-    """Create progress bar if available and enabled"""
-    if enabled and TQDM_AVAILABLE:
-        return tqdm(total=total, desc=description, unit="item")
-    return None
-
-
-def run_workflow(config_path: str, args: argparse.Namespace) -> bool:
-    """Main workflow execution function"""
-    logger = logging.getLogger(__name__)
-
-    try:
-        # Load configuration
-        config_manager = ConfigManager(config_path)
-        setup_logging(config_manager)
-
-        logger.info("=" * 80)
-        logger.info("AUTOMOTIVE PARTS DATA PROCESSING WORKFLOW")
-        logger.info("=" * 80)
-        logger.info(f"Configuration loaded from: {config_path}")
-
-        # Validate dependencies
-        if not validate_dependencies(config_manager):
-            logger.error("Dependency validation failed")
-            return False
-
-        # Backup existing outputs if requested
-        if args.backup_output:
-            backup_existing_outputs(config_manager)
-
-        # If specific step enable it only
-        if args.step:
-            config_manager._config['workflow']['enabled_steps'] = [args.step, ]
-        # Initialize workflow service
-        workflow_service = WorkflowService(config_manager)
-
-        # Show workflow plan
-        workflow_status = workflow_service.get_workflow_status()
-        logger.info(f"Workflow plan: {len(workflow_status['enabled_steps'])} steps enabled")
-        for step in workflow_status['enabled_steps']:
-            logger.info(f"  - {step}")
-
-        # Initialize jvms
-        logger.info(f"Initializing JVMs")
-        jar_paths = [config_manager._config["database"]["filemaker"]["fmjdbc_jar_path"],
-                        config_manager._config["database"]["iseries"]["jt400_jar_path"]]
-        start_jvm_once(jar_paths)
-
-        # Execute workflow
-        with performance_monitor("Complete Workflow Execution") as monitor:
-            logger.info("Starting workflow execution...")
-
-            # Create progress bar for workflow steps
-            progress_enabled = config_manager.get("monitoring.enable_progress_bars", False)
-            step_progress = create_progress_bar(
-                "Workflow Steps",
-                len(workflow_status['enabled_steps']),
-                progress_enabled
-            )
-
-            result = workflow_service.execute_workflow()
-
-            if step_progress:
-                step_progress.update(len(result.completed_steps))
-                step_progress.close()
-
-            monitor.increment_processed(len(result.completed_steps))
-            monitor.increment_errors(len(result.failed_steps))
-
-            # Report results
-            if result.success:
-                logger.info("🎉 Workflow completed successfully!")
-                logger.info(f"✅ Completed steps: {len(result.completed_steps)}")
-                for step in result.completed_steps:
-                    logger.info(f"   ✓ {step}")
-
-                # Display step results
-                for step, step_result in result.results.items():
-                    if isinstance(step_result, dict) and 'output_file' in step_result:
-                        logger.info(f"   📄 {step}: {step_result['output_file']}")
-
-            else:
-                logger.error("❌ Workflow completed with errors!")
-                logger.info(f"✅ Completed steps: {len(result.completed_steps)}")
-                logger.error(f"❌ Failed steps: {len(result.failed_steps)}")
-
-                for step in result.failed_steps:
-                    logger.error(f"   ✗ {step}")
-
-                for error in result.errors:
-                    logger.error(f"   📋 {error}")
-
-            # Generate summary report
-            _generate_workflow_summary(result, config_manager)
-
-            return result.success
-
-    except KeyboardInterrupt:
-        logger.info("⏹️  Workflow interrupted by user")
-        return False
-    except Exception as e:
-        logger.error(f"💥 Unexpected error during workflow: {e}")
-        logger.debug(traceback.format_exc())
-        return False
-
-
-def _generate_workflow_summary(result, config_manager):
-    """Generate workflow execution summary"""
-    logger = logging.getLogger(__name__)
-
-    summary_lines = []
-    summary_lines.append("=" * 80)
-    summary_lines.append("WORKFLOW EXECUTION SUMMARY")
-    summary_lines.append("=" * 80)
-
-    summary_lines.append(f"Total Steps: {len(result.completed_steps) + len(result.failed_steps)}")
-    summary_lines.append(f"Completed: {len(result.completed_steps)}")
-    summary_lines.append(f"Failed: {len(result.failed_steps)}")
-    summary_lines.append(
-        f"Success Rate: {len(result.completed_steps) / max(1, len(result.completed_steps) + len(result.failed_steps)) * 100:.1f}%")
-
-    if result.results:
-        summary_lines.append("")
-        summary_lines.append("GENERATED FILES:")
-        for step, step_result in result.results.items():
-            if isinstance(step_result, dict):
-                if 'output_file' in step_result:
-                    summary_lines.append(f"  {step}: {step_result['output_file']}")
-                elif 'input_files' in step_result and 'output_file' in step_result:
-                    summary_lines.append(f"  {step}: {step_result['output_file']}")
-
-    summary_lines.append("=" * 80)
-
-    for line in summary_lines:
-        logger.info(line)
-
-
-def create_sample_config(output_path: str = "config.yaml"):
-    """Create a sample configuration file"""
-    config_manager = ConfigManager()
-    config_manager.save_config(output_path)
+def create_sample_configuration(output_path: str = "config.yaml") -> None:
+    """Create a sample configuration file."""
+    config_manager = EnhancedConfigurationManager()
+    config_manager.save_configuration(output_path)
     print(f"✅ Sample configuration created: {output_path}")
     print("📝 Please edit the configuration file with your specific settings.")
 
 
-def validate_config(config_path: str):
-    """Validate configuration file"""
+def validate_configuration_file(config_path: str) -> bool:
+    """Validate configuration file."""
     try:
-        config_manager = ConfigManager(config_path)
-        errors = []
-
-        # Check required configuration sections
-        required_sections = [
-            "database.filemaker.dsn",
-            "database.filemaker.username",
-            "database.iseries.server",
-            "files.lookup_file",
-            "files.application_data"
-        ]
-
-        for section in required_sections:
-            if config_manager.get(section) is None:
-                errors.append(f"Missing required configuration: {section}")
-
-        # Validate workflow configuration
-        enabled_steps = config_manager.get("workflow.enabled_steps", [])
-        valid_steps = ["applications", "popularity_codes", "sdc_template", "partshub_template", "validations"]
-
-        for step in enabled_steps:
-            if step not in valid_steps:
-                errors.append(f"Unknown workflow step: {step}")
+        config_manager = EnhancedConfigurationManager(config_path)
+        errors = config_manager.validate_configuration()
 
         if errors:
             print("❌ Configuration validation failed:")
@@ -310,26 +151,29 @@ def validate_config(config_path: str):
         return False
 
 
-def list_workflow_steps(config_path: str):
-    """List available workflow steps and their status"""
+def list_workflow_steps(config_path: str) -> None:
+    """List available workflow steps and their status."""
     try:
-        config_manager = ConfigManager(config_path)
+        config_manager = EnhancedConfigurationManager(config_path)
 
         print("🔧 WORKFLOW CONFIGURATION")
         print("=" * 50)
 
-        enabled_steps = config_manager.get("workflow.enabled_steps", [])
-        all_steps = ["applications", "popularity_codes", "sdc_template", "partshub_template", "validations"]
+        enabled_steps = config_manager.get_value("workflow.enabled_steps", [])
+        all_steps = [
+            "applications", "marketing_descriptions", "popularity_codes",
+            "sdc_template", "validation_reports"
+        ]
 
         print("Available Steps:")
         for step in all_steps:
             status = "✅ ENABLED" if step in enabled_steps else "⭕ DISABLED"
-            print(f"  {step:<20} {status}")
+            print(f"  {step:<25} {status}")
 
         print(f"\nTotal enabled: {len(enabled_steps)}/{len(all_steps)}")
 
         # Show dependencies
-        dependencies = config_manager.get("workflow.step_dependencies", {})
+        dependencies = config_manager.get_value("workflow.step_dependencies", {})
         if dependencies:
             print("\nStep Dependencies:")
             for step, deps in dependencies.items():
@@ -342,22 +186,92 @@ def list_workflow_steps(config_path: str):
         print(f"💥 Error reading workflow configuration: {e}")
 
 
-def main():
-    """Main entry point"""
+def run_application_workflow(config_path: str, args: argparse.Namespace) -> bool:
+    """Run the main application workflow."""
+    global app_container
+
+    logger = logging.getLogger(__name__)
+
+    try:
+        # Initialize application container
+        logger.info("Initializing application container...")
+        app_container = ApplicationContainer(config_path)
+
+        # Get workflow engine
+        workflow_engine = app_container.get_workflow_engine()
+
+        # Determine steps to execute
+        steps_to_execute = None
+        if args.step:
+            steps_to_execute = [args.step]
+
+        # Display workflow status
+        workflow_status = workflow_engine.get_workflow_status()
+        enabled_steps = workflow_status.get('enabled_steps', [])
+
+        if steps_to_execute:
+            logger.info(f"Executing specific step: {args.step}")
+        else:
+            logger.info(f"Executing workflow with {len(enabled_steps)} enabled steps: {enabled_steps}")
+
+        # Execute workflow
+        logger.info("🚀 Starting workflow execution...")
+        start_time = datetime.now()
+
+        result = workflow_engine.execute_workflow(steps_to_execute)
+
+        end_time = datetime.now()
+        duration = (end_time - start_time).total_seconds()
+
+        # Report results
+        if result.success:
+            logger.info("🎉 Workflow completed successfully!")
+            logger.info(f"⏱️  Total execution time: {duration:.2f} seconds")
+            logger.info(f"✅ Items processed: {result.items_processed}")
+
+            # Display generated files
+            if 'step_results' in result.data:
+                logger.info("📄 Generated files:")
+                for step, step_result in result.data['step_results'].items():
+                    if 'output_file' in step_result:
+                        logger.info(f"   {step}: {step_result['output_file']}")
+        else:
+            logger.error("❌ Workflow completed with errors!")
+            logger.error(f"⏱️  Execution time: {duration:.2f} seconds")
+            logger.error(f"❌ Items failed: {result.items_failed}")
+
+            for error in result.errors:
+                logger.error(f"   📋 {error}")
+
+        return result.success
+
+    except KeyboardInterrupt:
+        logger.info("⏹️  Workflow interrupted by user")
+        return False
+    except Exception as e:
+        logger.error(f"💥 Unexpected error during workflow: {e}")
+        logger.debug(traceback.format_exc())
+        return False
+    finally:
+        # Cleanup
+        if app_container:
+            app_container.shutdown()
+
+
+def main() -> int:
+    """Main entry point."""
     parser = argparse.ArgumentParser(
-        description="Automotive Parts Data Processing Workflow",
+        description="Automotive Parts Data Processing Application",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 🚗 Examples:
-  %(prog)s                          # Run complete workflow with default config
-  %(prog)s -c custom_config.yaml    # Run with custom configuration
+  %(prog)s                          # Run complete workflow
+  %(prog)s -c custom_config.yaml    # Use custom configuration
   %(prog)s --create-config          # Create sample configuration
   %(prog)s --validate-config        # Validate configuration
-  %(prog)s --list-steps             # Show workflow steps
-  %(prog)s --backup-output          # Backup existing files before processing
-  %(prog)s --dry-run                # Validate setup without running
+  %(prog)s --list-steps             # Show available workflow steps
+  %(prog)s --step applications      # Run specific step only
   %(prog)s -v                       # Enable verbose output
-  %(prog)s --step                   # Run only a specific step
         """
     )
 
@@ -386,9 +300,9 @@ def main():
     )
 
     parser.add_argument(
-        "--backup-output",
-        action="store_true",
-        help="Backup existing output files before processing"
+        "--step",
+        choices=["applications", "marketing_descriptions", "popularity_codes", "sdc_template", "validation_reports"],
+        help="Run only a specific workflow step"
     )
 
     parser.add_argument(
@@ -403,20 +317,15 @@ def main():
         help="Validate setup without running processing"
     )
 
-    parser.add_argument(
-        "--step",
-        help="Run only a specific workflow step"
-    )
-
     args = parser.parse_args()
 
     # Handle special commands
     if args.create_config:
-        create_sample_config(args.config)
+        create_sample_configuration(args.config)
         return 0
 
     if args.validate_config:
-        success = validate_config(args.config)
+        success = validate_configuration_file(args.config)
         return 0 if success else 1
 
     if args.list_steps:
@@ -429,19 +338,35 @@ def main():
         print("💡 Use --create-config to create a sample configuration file.")
         return 1
 
-    if args.dry_run:
-        print("🔍 Dry run mode - validating setup...")
-        config_manager = ConfigManager(args.config)
-        if validate_dependencies(config_manager):
-            print("✅ Setup validation passed!")
-            return 0
-        else:
-            print("❌ Setup validation failed!")
+    # Initialize configuration and logging
+    try:
+        config_manager = EnhancedConfigurationManager(args.config)
+        setup_logging(config_manager)
+        setup_signal_handlers()
+
+        logger = logging.getLogger(__name__)
+        logger.info("=" * 80)
+        logger.info("AUTOMOTIVE PARTS DATA PROCESSING APPLICATION")
+        logger.info("=" * 80)
+        logger.info(f"Configuration: {args.config}")
+        logger.info(f"Started at: {datetime.now().isoformat()}")
+
+        # Validate environment
+        if not validate_environment(config_manager):
             return 1
 
-    # Run main workflow
-    success = run_workflow(args.config, args)
-    return 0 if success else 1
+        if args.dry_run:
+            logger.info("✅ Dry run completed - environment validation passed")
+            return 0
+
+        # Run main workflow
+        success = run_application_workflow(args.config, args)
+        return 0 if success else 1
+
+    except Exception as e:
+        print(f"💥 Fatal error: {e}")
+        print(traceback.format_exc())
+        return 1
 
 
 if __name__ == "__main__":
