@@ -1,0 +1,8 @@
+.idea/
+.env
+fmjdbc.jar
+jt400.jar
+/backups/
+/data/
+/logs/
+/output/

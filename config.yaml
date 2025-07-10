@@ -1,0 +1,241 @@
+# config.yaml - Application Configuration File
+
+# Database Configuration
+database:
+  filemaker:
+    server: "${FILEMAKER_SERVER}"
+    port: ${FILEMAKER_PORT}
+    user: "${FILEMAKER_USER}"
+    password: "${FILEMAKER_PASSWORD}"
+    database: "${FILEMAKER_DATABASE}"
+    fmjdbc_jar_path: "libs/fmjdbc.jar"
+    connection_timeout: 30
+    retry_attempts: 3
+
+  iseries:
+    server: "${ISERIES_SERVER}"
+    user: "${ISERIES_USER}"
+    password: "${ISERIES_PASSWORD}"
+    database: "${ISERIES_DATABASE}"
+    jt400_jar_path: "libs/jt400.jar"
+    connection_timeout: 30
+    retry_attempts: 3
+
+# File Paths Configuration
+files:
+  # Input files
+  lookup_file: "data/application_replacements.json"
+  verification_file: "data/YMM_Lookup.xlsx"
+  sdc_blank_template: "data/SDC_Blank_Template.xlsx"
+  sdc_full_pies: "data/SDC_PIES_FULL.xlsx"
+  missing_parts_list: "data/sdc_missing.txt"
+
+  # Output files
+  application_data: "output/application_data.xlsx"
+  popularity_codes: "output/popularity_codes.csv"
+  sdc_populated_template: "output/SDC_Populated_Template.xlsx"
+  sdc_final_template: "output/SDC_Final_Template.xlsx"
+  upc_validation_report: "output/upc_validation_report.xlsx"
+  measurement_validation_report: "output/measurement_validation_report.xlsx"
+  cost_discrepancy_report: "output/cost_discrepancy_report.xlsx"
+  kit_components_report: "output/kit_components_report.xlsx"
+
+  # Directories
+  backup_dir: "backups"
+  log_file: "logs/application_parser.log"
+  query_templates_dir: "src/database/query_templates"
+
+# Data Validation Configuration
+validation:
+  vehicle_start_year: 1900
+  vehicle_end_year: 2026  # Current year + 1
+  desc_width: 30
+  max_line_length: 500
+  allowed_special_chars: [";", "-", "/", "(", ")", "&", "'", '"']
+
+  # Year validation rules
+  year_validation:
+    min_range: 1
+    max_range: 50
+    future_years_allowed: 1
+
+  # UPC validation
+  upc_validation:
+    enabled: true
+    check_duplicates: true
+    validate_check_digit: true
+    allowed_lengths: [12,]
+
+  # Measurement validation
+  measurement_validation:
+    enabled: true
+    max_length_inches: 120
+    max_width_inches: 120
+    max_height_inches: 120
+    max_weight_pounds: 500
+    tolerance_percentage: 5.0
+
+  # Note validation patterns
+  valid_note_prefixes:
+    - "w/ "
+    - "- "
+    - "w/o "
+    - "("
+    - "lhd"
+    - "rhd"
+    - ";"
+    - "after "
+    - "before "
+    - "front"
+    - "rear"
+    - "tagged"
+    - "non-export"
+    - "2-door"
+    - "4-door"
+    - "2 door"
+    - "4 door"
+    - "< "
+    - "except "
+    - "instrument"
+    - "thru "
+    - "up to "
+    - "usa"
+    - "for us"
+    - "germany"
+    - "fits "
+    - "export"
+    - "all countries"
+    - "all markets"
+    - "until "
+    - "production"
+
+# Processing Configuration
+processing:
+  batch_size: 1000
+  enable_parallel: false
+  max_workers: 4
+  memory_limit_mb: 2048
+
+  # Feature flags
+  features:
+    extract_engines: true
+    extract_transmissions: true
+    extract_axles: true
+    extract_brakes: true
+    extract_doors: true
+    date_correction: true
+    expand_years: true
+    generate_jeep_report: true
+    generate_popularity_codes: true
+    populate_sdc_template: true
+    generate_partshub_template: true
+    validate_upcs: true
+    validate_measurements: true
+    generate_kit_components: true
+    check_cost_discrepancies: true
+
+# Popularity Codes Configuration
+popularity_codes:
+  default_branch: "1"
+  default_brand: "All"  # Options: "Crown", "Rough Trail", "All"
+  start_date_format: "%Y%m%d"
+  default_start_date: "20250101"  # Will use current year + "0101" if not specified
+
+  # Popularity thresholds
+  thresholds:
+    top_tier: 60.0      # A: Top 60%
+    second_tier: 20.0   # B: Next 20%
+    third_tier: 15.0    # C: Next 15%
+    bottom_tier: 5.0    # D: Last 5%
+
+# SDC Template Configuration
+sdc_template:
+  country_mapping_file: "data/country_codes.json"
+  packaging_mapping_file: "data/packaging_codes.json"
+  interchange_codes: ["SUP", "130", "140", "150", "160", "165", "170", "240", "280", "300", "350", "380", "381", "382", "383", "384", "385", "386", "387", "388", "400", "511", "680", "950", "956", "966", "970", "972", "975"]
+
+  # Field limits
+  field_limits:
+    abbreviated_description: 12
+    short_description: 20
+    invoice_description: 40
+    bullet_points_max: 240
+
+# Output Configuration
+output:
+  excel:
+    include_formatting: true
+    auto_filter: true
+    freeze_headers: true
+    max_column_width: 50
+    generate_summary: true
+
+  sheets:
+    - name: "Correct Applications"
+      enabled: true
+      sort_by: ["PartNumber", "YearStart"]
+    - name: "Incorrect Applications"
+      enabled: true
+    - name: "Invalid Applications"
+      enabled: true
+    - name: "Expanded Applications"
+      enabled: true
+      sort_by: ["PartNumber", "Year"]
+    - name: "Jeep Applications"
+      enabled: true
+    - name: "Application Review"
+      enabled: true
+    - name: "UPC Validation"
+      enabled: true
+    - name: "Cost Discrepancies"
+      enabled: true
+    - name: "Kit Components"
+      enabled: true
+
+# Logging Configuration
+logging:
+  level: "INFO"  # DEBUG, INFO, WARNING, ERROR, CRITICAL
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  max_file_size_mb: 10
+  backup_count: 5
+  console_output: true
+
+  # Module-specific log levels
+  loggers:
+    "database": "INFO"
+    "validation": "WARNING"
+    "extraction": "INFO"
+    "output": "INFO"
+    "popularity": "INFO"
+    "sdc": "INFO"
+    "partshub": "INFO"
+
+# Performance and Monitoring
+monitoring:
+  enable_progress_bars: true
+  enable_timing: true
+  memory_monitoring: true
+  detailed_stats: false
+
+# Error Handling
+error_handling:
+  continue_on_error: true
+  max_errors_per_batch: 100
+  error_reporting: "detailed"  # "summary", "detailed", "none"
+  save_error_details: true
+
+# Workflow Configuration
+workflow:
+  enabled_steps:
+    - "applications"
+    - "popularity_codes"
+    - "sdc_template"
+    - "partshub_template"
+    - "validations"
+
+  step_dependencies:
+    popularity_codes: []
+    applications: []
+    sdc_template: ["applications", "popularity_codes"]
+    partshub_template: ["sdc_template"]
+    validations: []
