@@ -12,4 +12,4 @@ LEFT JOIN DSTDATA.INSMFT it ON
     it.SPART = mf.SPART
 WHERE it.SBRAN = {branch}
 GROUP BY
-    mf.SNSCHR, mf.SDESCL, it.SCLSK, it.SALLOC, mf.SRET1;
+    mf.SNSCHR, mf.SDESCL, it.SCLSK, it.SALLOC, mf.SRET1

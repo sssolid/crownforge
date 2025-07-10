@@ -66,4 +66,4 @@ WHERE
     AND p.SRCOST != lcc.ASCCST  -- Only show discrepancies
     {part_filter}
 ORDER BY
-    ch."Assembly", ch."Level";
+    ch."Assembly", ch."Level"

@@ -22,7 +22,6 @@ from ...domain.validators.business.vehicle_application_validator import (
     VehicleApplicationBusinessValidator, VehicleApplicationValidationConfig
 )
 from ...domain.validators.upc_validator import UpcCodeValidator, UpcValidationConfig
-from ...domain.validators.measurement_validator import MeasurementValidator, MeasurementValidationConfig
 
 logger = logging.getLogger(__name__)
 
@@ -66,9 +65,3 @@ class ValidatorFactory:
         """Create UPC code validator."""
         upc_config = UpcValidationConfig(**config)
         return UpcCodeValidator(upc_config)
-
-    @staticmethod
-    def create_measurement_validator(config: Dict[str, Any]) -> MeasurementValidator:
-        """Create measurement validator."""
-        measurement_config = MeasurementValidationConfig(**config)
-        return MeasurementValidator(measurement_config)

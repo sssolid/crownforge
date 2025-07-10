@@ -10,7 +10,7 @@ from typing import List, Dict, Any, Optional
 from dataclasses import dataclass
 
 from ...domain.models import ProcessingResult, PopularityCode
-from ...infrastructure.repositories.iseries_repository import IseriesDataRepository, PopularitySalesData
+from ...infrastructure.repositories.iseries.sales_repository import IseriesSalesRepository, IseriesSalesData
 
 logger = logging.getLogger(__name__)
 
@@ -39,7 +39,7 @@ class PopularityCodeService:
 
     def __init__(
             self,
-            iseries_repository: IseriesDataRepository,
+            iseries_repository: IseriesSalesRepository,
             config: PopularityConfig
     ):
         self.iseries_repository = iseries_repository
@@ -104,7 +104,7 @@ class PopularityCodeService:
 
     def _process_popularity_data(
             self,
-            sales_data: List[PopularitySalesData],
+            sales_data: List[IseriesSalesData],
             stock_lookup: Dict[str, Any],
             brand_filter: str
     ) -> List[Dict[str, Any]]:
@@ -172,7 +172,7 @@ class PopularityCodeService:
 
     def _assign_default_codes(
             self,
-            sales_data: List[PopularitySalesData],
+            sales_data: List[IseriesSalesData],
             stock_lookup: Dict[str, Any]
     ) -> List[Dict[str, Any]]:
         """Assign default 'D' codes when no sales data is available."""

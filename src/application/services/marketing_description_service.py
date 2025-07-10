@@ -8,8 +8,8 @@ from typing import List, Dict, Any, Optional
 from dataclasses import dataclass
 
 from ...domain.models import MarketingDescription, ValidationResult, ProcessingResult
-from ...domain.validators.marketing_description_validator import (
-    MarketingDescriptionValidator, MarketingDescriptionValidationConfig
+from ...domain.validators.filemaker.marketing_description_validator import (
+    FilemakerMarketingDescriptionValidator, FilemakerMarketingDescriptionValidationConfig
 )
 from ...domain.interfaces import MarketingDescriptionRepository, ReportGenerator
 
@@ -35,7 +35,7 @@ class MarketingDescriptionService:
     def __init__(
             self,
             repository: MarketingDescriptionRepository,
-            validator: MarketingDescriptionValidator,
+            validator: FilemakerMarketingDescriptionValidator,
             report_generator: ReportGenerator
     ):
         self.repository = repository

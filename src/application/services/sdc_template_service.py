@@ -8,7 +8,7 @@ from typing import List, Dict, Any, Optional
 from pathlib import Path
 
 from ...domain.models import ProcessingResult
-from ...infrastructure.repositories.filemaker_repository import FilemakerMarketingDescriptionRepository
+from ...infrastructure.repositories.filemaker.marketing_description_repository import FilemakerMarketingDescriptionRepository
 from .marketing_description_service import MarketingDescriptionService
 
 logger = logging.getLogger(__name__)

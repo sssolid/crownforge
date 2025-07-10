@@ -1,5 +1,6 @@
--- src/infrastructure/repositories/query_templates/filemaker/fm_sdc_template_data.sql
--- Filemaker query for SDC template data population
+/* src/infrastructure/repositories/query_templates/filemaker/fm_sdc_template_data.sql
+   Filemaker query for SDC template data population
+ */
 SELECT
     "m"."AS400_NumberStripped",
     "m"."PartHazardousMaterial",
@@ -57,4 +58,4 @@ SELECT
     "m"."VehicleInnerOuter"
 FROM "Master" AS "m"
 LEFT JOIN "part" AS "p" ON "m"."PartTertiaryCategory" = "p"."partterminologyname"
-WHERE m.ToggleActive='Yes';
+WHERE m.ToggleActive='Yes'

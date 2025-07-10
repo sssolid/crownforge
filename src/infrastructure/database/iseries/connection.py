@@ -22,12 +22,6 @@ class IseriesDatabaseConnection(DatabaseConnection, ConnectionRetryMixin):
     def __init__(self, config: IseriesConfig):
         self.config = config
         self.jvm_manager = JvmManager()
-        self._ensure_jvm_started()
-
-    def _ensure_jvm_started(self) -> None:
-        """Ensure JVM is started with JT400 JAR."""
-        self.jvm_manager.add_jar_path(self.config.jdbc_jar_path)
-        self.jvm_manager.start_jvm()
 
     def _create_connection(self) -> jaydebeapi.Connection:
         """Create new Iseries connection."""

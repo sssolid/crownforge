@@ -4,7 +4,7 @@ Iseries measurement data repository.
 """
 
 import logging
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from pathlib import Path
 
 from ...database.iseries.connection import IseriesDatabaseConnection

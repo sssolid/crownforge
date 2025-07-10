@@ -64,4 +64,4 @@ WHERE
     1=1
     {assembly_filter}
 ORDER BY
-    ch."Assembly", ch."Level";
+    ch."Assembly", ch."Level"

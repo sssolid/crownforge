@@ -1,5 +1,6 @@
--- src/infrastructure/repositories/query_templates/filemaker/fm_measurement_validation.sql
--- Filemaker query for measurement validation data
+/* src/infrastructure/repositories/query_templates/filemaker/fm_measurement_validation.sql
+   Filemaker query for measurement validation data
+ */
 SELECT
     "m"."AS400_NumberStripped" AS "PartNumber",
     "m"."PartDescription",
@@ -11,4 +12,4 @@ SELECT
 FROM "Master" "m"
 WHERE
     ToggleActive = 'Yes'
-ORDER BY AS400_NumberStripped;
+ORDER BY AS400_NumberStripped

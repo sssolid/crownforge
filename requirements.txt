@@ -1,0 +1,30 @@
+# requirements.txt
+# Python dependencies for Automotive Parts Data Processing Application
+
+# Core Data Processing
+pandas>=2.0.0
+openpyxl>=3.1.0
+
+# Database Connectivity
+jaydebeapi>=1.2.3
+jpype1>=1.4.0
+
+# Configuration Management
+pyyaml>=6.0
+python-dotenv>=1.0.0
+
+# Terminal Interface and Progress
+rich>=13.0.0
+
+# Validation and Data Quality
+jsonschema>=4.17.0
+
+# Text Processing and Matching
+python-levenshtein>=0.21.0
+
+# Optional: Development and Testing Dependencies
+# pytest>=7.0.0
+# pytest-cov>=4.0.0
+# black>=23.0.0
+# flake8>=6.0.0
+# mypy>=1.0.0

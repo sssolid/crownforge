@@ -22,12 +22,6 @@ class FilemakerDatabaseConnection(DatabaseConnection, ConnectionRetryMixin):
     def __init__(self, config: FilemakerConfig):
         self.config = config
         self.jvm_manager = JvmManager()
-        self._ensure_jvm_started()
-
-    def _ensure_jvm_started(self) -> None:
-        """Ensure JVM is started with Filemaker JAR."""
-        self.jvm_manager.add_jar_path(self.config.jdbc_jar_path)
-        self.jvm_manager.start_jvm()
 
     def _create_connection(self) -> jaydebeapi.Connection:
         """Create new Filemaker connection."""
@@ -116,7 +110,7 @@ class FilemakerDatabaseConnection(DatabaseConnection, ConnectionRetryMixin):
         """Test if connection is working."""
         try:
             with self.get_connection() as cursor:
-                cursor.execute("SELECT 1")
+                cursor.execute("SELECT TableName FROM FileMaker_Tables FETCH FIRST 1 ROWS ONLY")
                 return True
         except Exception as e:
             logger.error(f"Filemaker connection test failed: {e}")

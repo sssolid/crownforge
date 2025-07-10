@@ -1,5 +1,6 @@
--- src/infrastructure/repositories/query_templates/filemaker/fm_application_data_active.sql
--- Filemaker query for active application data processing
+/* src/infrastructure/repositories/query_templates/filemaker/fm_application_data_active.sql
+   Filemaker query for active application data processing
+ */
 SELECT
     "m"."AS400_NumberStripped",
     "m"."PartApplication",
@@ -8,4 +9,4 @@ SELECT
     "m"."PartNotes"
 FROM "Master" "m"
 WHERE ToggleActive='Yes'
-ORDER BY AS400_NumberStripped;
+ORDER BY AS400_NumberStripped

@@ -1,5 +1,6 @@
--- src/infrastructure/repositories/query_templates/filemaker/fm_master_data_with_marketing_descriptions.sql
--- Filemaker query for master data with marketing descriptions for SDC processing
+/* src/infrastructure/repositories/query_templates/filemaker/fm_master_data_with_marketing_descriptions.sql
+   Filemaker query for master data with marketing descriptions for SDC processing
+ */
 SELECT
     "m"."AS400_NumberStripped",
     "m"."PartHazardousMaterial",
@@ -63,4 +64,4 @@ FROM "Master" AS "m"
 LEFT JOIN "part" AS "p" ON "m"."PartTertiaryCategory" = "p"."partterminologyname"
 LEFT JOIN "MarketingDescriptions" AS "md" ON "m"."SDC_PartTerminologyID" = "md"."PartTerminologyID"
 WHERE m.ToggleActive='Yes'
-ORDER BY "m"."AS400_NumberStripped";
+ORDER BY "m"."AS400_NumberStripped"

@@ -8,7 +8,7 @@ from typing import List, Dict, Any, Optional
 from dataclasses import dataclass
 
 from ...domain.models import VehicleApplication, ProcessingResult, PartNumber
-from ...domain.validators.application_validator import VehicleApplicationValidator
+from ...domain.validators.business.vehicle_application_validator import VehicleApplicationBusinessValidator
 from ...domain.interfaces import ApplicationRepository, LookupService, ReportGenerator
 
 logger = logging.getLogger(__name__)
@@ -40,7 +40,7 @@ class ApplicationProcessingService:
     def __init__(
             self,
             repository: ApplicationRepository,
-            validator: VehicleApplicationValidator,
+            validator: VehicleApplicationBusinessValidator,
             lookup_service: LookupService,
             report_generator: ReportGenerator,
             config: ApplicationProcessingConfig

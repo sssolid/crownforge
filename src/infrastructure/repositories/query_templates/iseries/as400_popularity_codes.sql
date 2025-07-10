@@ -31,4 +31,4 @@ WHERE
 GROUP BY
     mf.SNSCHR, mf.SRET1, mf.SDESCL, it.SCLSK, it.SALLOC
 ORDER BY
-    "Sold" DESC;
+    "Sold" DESC

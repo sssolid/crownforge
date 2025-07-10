@@ -1,5 +1,6 @@
--- src/infrastructure/repositories/query_templates/filemaker/fm_marketing_description_by_id.sql
--- Filemaker query for finding marketing description by terminology ID
+/*src/infrastructure/repositories/query_templates/filemaker/fm_marketing_description_by_id.sql
+  Filemaker query for finding marketing description by terminology ID
+ */
 SELECT
     "md"."PartTerminologyID",
     "md"."Jeep",
@@ -11,4 +12,4 @@ SELECT
     "md"."ReviewNotes",
     "md"."PartTerminologyIDToBeAdded"
 FROM "MarketingDescriptions" "md"
-WHERE "md"."PartTerminologyID" = '{terminology_id}';
+WHERE "md"."PartTerminologyID" = '{terminology_id}'
