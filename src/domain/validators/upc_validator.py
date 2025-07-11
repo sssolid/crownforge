@@ -4,7 +4,7 @@ UPC code validator implementation.
 """
 
 import logging
-from typing import List, Dict, Any
+from typing import List
 from dataclasses import dataclass
 
 from ..models import UpcCode, ValidationResult
@@ -57,7 +57,8 @@ class UpcCodeValidator(BaseValidator[UpcCode]):
 
         return result
 
-    def _validate_check_digit(self, upc: UpcCode) -> ValidationResult:
+    @staticmethod
+    def _validate_check_digit(upc: UpcCode) -> ValidationResult:
         """Validate UPC check digit."""
         result = ValidationResult(is_valid=True)
 

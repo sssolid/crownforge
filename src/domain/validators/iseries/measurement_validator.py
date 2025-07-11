@@ -4,10 +4,10 @@ Iseries measurement validation for comparison with Filemaker data.
 """
 
 import logging
-from typing import List, Dict, Any, Optional
+from typing import Optional
 from dataclasses import dataclass
 
-from ...models import Measurement, ValidationResult
+from ...models import ValidationResult
 from ..base_validator import BaseValidator, ValidationConfig
 
 logger = logging.getLogger(__name__)
@@ -72,7 +72,8 @@ class IseriesMeasurementValidator(BaseValidator[IseriesMeasurementRecord]):
 
         return result
 
-    def _validate_single_iseries_measurement(self, name: str, value: Optional[float],
+    @staticmethod
+    def _validate_single_iseries_measurement(name: str, value: Optional[float],
                                              max_value: float) -> ValidationResult:
         """Validate a single Iseries measurement."""
         result = ValidationResult(is_valid=True)
@@ -90,7 +91,8 @@ class IseriesMeasurementValidator(BaseValidator[IseriesMeasurementRecord]):
 
         return result
 
-    def _validate_iseries_dimensional_weight(self, record: IseriesMeasurementRecord) -> ValidationResult:
+    @staticmethod
+    def _validate_iseries_dimensional_weight(record: IseriesMeasurementRecord) -> ValidationResult:
         """Validate dimensional weight calculations for Iseries data."""
         result = ValidationResult(is_valid=True)
 

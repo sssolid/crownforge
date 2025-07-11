@@ -4,7 +4,6 @@ Filemaker-specific data validation for master data integrity.
 """
 
 import logging
-from typing import List, Dict, Any
 from dataclasses import dataclass
 
 from ...models import ValidationResult
@@ -85,7 +84,8 @@ class FilemakerDataValidator(BaseValidator[FilemakerMasterRecord]):
 
         return result
 
-    def _validate_filemaker_upc(self, upc_code: str) -> ValidationResult:
+    @staticmethod
+    def _validate_filemaker_upc(upc_code: str) -> ValidationResult:
         """Validate UPC code from Filemaker."""
         result = ValidationResult(is_valid=True)
 
@@ -102,7 +102,8 @@ class FilemakerDataValidator(BaseValidator[FilemakerMasterRecord]):
 
         return result
 
-    def _validate_filemaker_measurements(self, record: FilemakerMasterRecord) -> ValidationResult:
+    @staticmethod
+    def _validate_filemaker_measurements(record: FilemakerMasterRecord) -> ValidationResult:
         """Validate measurements from Filemaker."""
         result = ValidationResult(is_valid=True)
 

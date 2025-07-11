@@ -4,12 +4,12 @@ Marketing description service for validation and report generation.
 """
 
 import logging
-from typing import List, Dict, Any, Optional
+from typing import List
 from dataclasses import dataclass
 
 from ...domain.models import MarketingDescription, ValidationResult, ProcessingResult
 from ...domain.validators.filemaker.marketing_description_validator import (
-    FilemakerMarketingDescriptionValidator, FilemakerMarketingDescriptionValidationConfig
+    FilemakerMarketingDescriptionValidator
 )
 from ...domain.interfaces import MarketingDescriptionRepository, ReportGenerator
 

@@ -4,8 +4,7 @@ Business logic validator for vehicle applications across all systems.
 """
 
 import logging
-import re
-from typing import Set, List, Dict, Any
+from typing import Set, List
 from dataclasses import dataclass
 
 from ...models import VehicleApplication, ValidationResult, YearRange
@@ -138,7 +137,8 @@ class VehicleApplicationBusinessValidator(BaseValidator[VehicleApplication]):
 
         return result
 
-    def _validate_vehicle_model(self, model: str, make: str) -> ValidationResult:
+    @staticmethod
+    def _validate_vehicle_model(model: str, make: str) -> ValidationResult:
         """Validate vehicle model."""
         result = ValidationResult(is_valid=True)
 
@@ -193,7 +193,8 @@ class VehicleApplicationBusinessValidator(BaseValidator[VehicleApplication]):
 
         return result
 
-    def _validate_make_model_consistency(self, make: str, model: str, year_range: YearRange) -> ValidationResult:
+    @staticmethod
+    def _validate_make_model_consistency(make: str, model: str, year_range: YearRange) -> ValidationResult:
         """Validate make-model consistency against known vehicle data."""
         result = ValidationResult(is_valid=True)
 
@@ -214,7 +215,8 @@ class VehicleApplicationBusinessValidator(BaseValidator[VehicleApplication]):
 
         return result
 
-    def _validate_universal_application(self, application: VehicleApplication) -> ValidationResult:
+    @staticmethod
+    def _validate_universal_application(application: VehicleApplication) -> ValidationResult:
         """Validate universal applications."""
         result = ValidationResult(is_valid=True)
 
@@ -226,7 +228,8 @@ class VehicleApplicationBusinessValidator(BaseValidator[VehicleApplication]):
 
         return result
 
-    def _initialize_known_makes(self) -> Set[str]:
+    @staticmethod
+    def _initialize_known_makes() -> Set[str]:
         """Initialize set of known vehicle makes."""
         return {
             'acura', 'alfa romeo', 'amc', 'aston martin', 'audi', 'bentley', 'bmw',

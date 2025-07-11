@@ -8,12 +8,12 @@ import json
 import logging
 import re
 from pathlib import Path
-from typing import List, Dict, Any, Optional, Set
+from typing import List, Dict, Any, Optional
 from dataclasses import dataclass
 from difflib import SequenceMatcher
 
 from ...domain.interfaces import LookupService
-from ...domain.models import ApplicationLookupEntry, YearRange
+from ...domain.models import ApplicationLookupEntry
 
 logger = logging.getLogger(__name__)
 
@@ -265,7 +265,8 @@ class ApplicationLookupService(LookupService):
 
         return matches
 
-    def _calculate_component_match_score(self, entry: ApplicationLookupEntry,
+    @staticmethod
+    def _calculate_component_match_score(entry: ApplicationLookupEntry,
                                          components: Dict[str, Any]) -> float:
         """Calculate match score based on component matching."""
         score = 0.0

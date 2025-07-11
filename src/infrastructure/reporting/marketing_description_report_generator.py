@@ -4,8 +4,7 @@ Specialized report generator for marketing description validation results.
 """
 
 import logging
-from typing import Dict, Any, List
-from dataclasses import dataclass
+from typing import Dict, Any
 
 from .excel_report_generator import ExcelReportGenerator, ExcelReportConfig, SheetDefinition
 from ...domain.models import ProcessingResult
@@ -29,7 +28,8 @@ class MarketingDescriptionReportGenerator(ExcelReportGenerator):
         # Generate report using parent class
         return self.generate_report(excel_data, output_path)
 
-    def _initialize_marketing_sheet_definitions(self) -> Dict[str, SheetDefinition]:
+    @staticmethod
+    def _initialize_marketing_sheet_definitions() -> Dict[str, SheetDefinition]:
         """Initialize marketing-specific sheet definitions."""
         return {
             'missing_descriptions': SheetDefinition(
@@ -57,7 +57,8 @@ class MarketingDescriptionReportGenerator(ExcelReportGenerator):
             )
         }
 
-    def _prepare_marketing_data_for_excel(self, validation_data: Dict[str, Any]) -> Dict[str, Any]:
+    @staticmethod
+    def _prepare_marketing_data_for_excel(validation_data: Dict[str, Any]) -> Dict[str, Any]:
         """Prepare marketing validation data for Excel report generation."""
         excel_data = {}
 

@@ -10,18 +10,14 @@ from typing import Optional, Dict, Any
 from enum import Enum
 from dataclasses import dataclass
 
-try:
-    from rich.console import Console
-    from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TaskProgressColumn, TimeElapsedColumn
-    from rich.table import Table
-    from rich.panel import Panel
-    from rich.text import Text
-    from rich.logging import RichHandler
-    from rich.traceback import install as install_rich_traceback
-
-    RICH_AVAILABLE = True
-except ImportError:
-    RICH_AVAILABLE = False
+from rich.console import Console
+from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TaskProgressColumn, TimeElapsedColumn, \
+    TaskID
+from rich.table import Table
+from rich.panel import Panel
+from rich.text import Text
+from rich.logging import RichHandler
+from rich.traceback import install as install_rich_traceback
 
 from ...domain.interfaces import ProgressTracker
 
@@ -49,11 +45,10 @@ class TerminalInterface:
 
     def __init__(self, config: TerminalConfig = None):
         self.config = config or TerminalConfig()
-        self.console = Console() if RICH_AVAILABLE else None
+        self.console = Console()
 
         # Install rich traceback for better error display
-        if RICH_AVAILABLE:
-            install_rich_traceback(show_locals=self.config.log_level == LogLevel.DEBUG)
+        install_rich_traceback(show_locals=self.config.log_level == LogLevel.DEBUG)
 
     def setup_logging(self, log_file: Optional[str] = None) -> None:
         """Setup logging with rich formatting."""
@@ -74,7 +69,7 @@ class TerminalInterface:
             root_logger.setLevel(logging.DEBUG)
 
         # Console handler with rich formatting
-        if RICH_AVAILABLE and self.config.log_level != LogLevel.SILENT:
+        if self.config.log_level != LogLevel.SILENT:
             console_handler = RichHandler(
                 console=self.console,
                 show_time=self.config.show_timestamps,
@@ -98,7 +93,7 @@ class TerminalInterface:
 
     def print_header(self, title: str, subtitle: Optional[str] = None) -> None:
         """Print application header."""
-        if not RICH_AVAILABLE or self.config.log_level == LogLevel.SILENT:
+        if self.config.log_level == LogLevel.SILENT:
             return
 
         header_text = Text(title, style="bold blue")
@@ -111,13 +106,13 @@ class TerminalInterface:
 
     def print_section(self, title: str, style: str = "bold cyan") -> None:
         """Print section header."""
-        if not RICH_AVAILABLE or self.config.log_level == LogLevel.SILENT:
+        if self.config.log_level == LogLevel.SILENT:
             return
         self.console.print(f"\n[{style}]{title}[/{style}]")
 
     def print_success(self, message: str) -> None:
         """Print success message."""
-        if RICH_AVAILABLE and self.config.log_level != LogLevel.SILENT:
+        if self.config.log_level != LogLevel.SILENT:
             self.console.print(f"[green]✅ {message}[/green]")
         else:
             print(f"✅ {message}")
@@ -129,14 +124,14 @@ class TerminalInterface:
             from pathlib import Path
             location = f" [{Path(file_path).name}:{line_number}]"
 
-        if RICH_AVAILABLE and self.config.log_level != LogLevel.SILENT:
+        if self.config.log_level != LogLevel.SILENT:
             self.console.print(f"[red]❌ {message}{location}[/red]")
         else:
             print(f"❌ {message}{location}")
 
     def print_warning(self, message: str) -> None:
         """Print warning message."""
-        if RICH_AVAILABLE and self.config.log_level != LogLevel.SILENT:
+        if self.config.log_level != LogLevel.SILENT:
             self.console.print(f"[yellow]⚠️  {message}[/yellow]")
         else:
             print(f"⚠️  {message}")
@@ -144,14 +139,11 @@ class TerminalInterface:
     def print_info(self, message: str) -> None:
         """Print info message."""
         if self.config.log_level in [LogLevel.VERBOSE, LogLevel.DEBUG]:
-            if RICH_AVAILABLE:
-                self.console.print(f"[blue]ℹ️  {message}[/blue]")
-            else:
-                print(f"ℹ️  {message}")
+            self.console.print(f"[blue]ℹ️  {message}[/blue]")
 
     def print_results_table(self, title: str, data: Dict[str, Any]) -> None:
         """Print results in a formatted table."""
-        if not RICH_AVAILABLE or self.config.log_level == LogLevel.SILENT:
+        if self.config.log_level == LogLevel.SILENT:
             return
 
         table = Table(title=title, show_header=True, header_style="bold magenta")
@@ -183,11 +175,11 @@ class RichProgressTracker(ProgressTracker):
     def __init__(self, terminal: TerminalInterface):
         self.terminal = terminal
         self.progress: Optional[Progress] = None
-        self.task_id: Optional[int] = None
+        self.task_id: Optional[TaskID] = None
 
     def start(self, total_items: int, description: str = "") -> None:
         """Start progress tracking."""
-        if not RICH_AVAILABLE or self.terminal.config.log_level == LogLevel.SILENT:
+        if self.terminal.config.log_level == LogLevel.SILENT:
             return
 
         if not self.terminal.config.show_progress_bars:

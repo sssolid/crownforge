@@ -4,7 +4,7 @@ Iseries sales and popularity data repository.
 """
 
 import logging
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any
 from pathlib import Path
 from dataclasses import dataclass
 
@@ -65,7 +65,8 @@ class IseriesSalesRepository(BaseQueryRepository):
         """Get cost data for validation against other systems."""
         return self.execute_template_query('as400_cost_validation_data')
 
-    def _map_to_sales_data(self, record: Dict[str, Any]) -> IseriesSalesData:
+    @staticmethod
+    def _map_to_sales_data(record: Dict[str, Any]) -> IseriesSalesData:
         """Map database record to sales data."""
         return IseriesSalesData(
             part_number=record.get('Number', ''),

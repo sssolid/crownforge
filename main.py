@@ -4,7 +4,6 @@ Enhanced main application entry point with terminal interface - works with exist
 """
 
 import sys
-import logging
 import argparse
 import traceback
 import signal
@@ -42,7 +41,7 @@ terminal_interface = None
 def setup_signal_handlers() -> None:
     """Setup signal handlers for graceful shutdown."""
 
-    def signal_handler(signum, frame):
+    def signal_handler(_signum, _frame):
         if terminal_interface and TERMINAL_INTERFACE_AVAILABLE:
             terminal_interface.print_warning("Received interrupt signal, shutting down gracefully...")
         else:
@@ -88,8 +87,8 @@ def validate_environment(config_manager: EnhancedConfigurationManager) -> bool:
             terminal_interface.print_success("Python dependencies verified")
         else:
             print("✅ Python dependencies verified")
-    except ImportError as e:
-        errors.append(f"Missing Python dependency: {e}")
+    except ImportError as err:
+        errors.append(f"Missing Python dependency: {err}")
 
     # Validate configuration
     config_errors = config_manager.validate_configuration()
@@ -561,6 +560,14 @@ def main() -> int:
 
         return 1
 
-
-if __name__ == "__main__":
-    sys.exit(main())
+if __name__ == '__main__':
+    try:
+        main()
+    except KeyboardInterrupt:
+        sys.exit(1)
+    except Exception as e:
+        traceback.print_exc()
+        sys.exit(1)
+    finally:
+        if jpype.isJVMStarted():
+            jpype.shutdownJVM()

@@ -67,7 +67,8 @@ class SdcTemplateService:
                 errors=[f"SDC template generation failed: {e}"]
             )
 
-    def _load_missing_parts(self, missing_parts_file: str) -> set:
+    @staticmethod
+    def _load_missing_parts(missing_parts_file: str) -> set:
         """Load missing part numbers from file."""
         missing_parts = set()
         try:

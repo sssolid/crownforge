@@ -55,8 +55,8 @@ class FilemakerMarketingDescriptionRepository(BaseQueryRepository, MarketingDesc
         results = self.execute_template_query('fm_missing_marketing_descriptions')
         return [record['SDC_PartTerminologyID'] for record in results]
 
-    def get_master_data_with_descriptions_for_sdc(self) -> List[Dict[str, Any]]:
-        """Get master data joined with marketing descriptions for SDC template."""
+    def get_master_data_with_descriptions(self) -> List[Dict[str, Any]]:
+        """Get master data joined with marketing descriptions."""
         return self.execute_template_query('fm_master_data_with_marketing_descriptions')
 
     def get_sdc_template_data(self, missing_part_numbers: Optional[List[str]] = None) -> List[Dict[str, Any]]:
@@ -99,7 +99,8 @@ class FilemakerMarketingDescriptionRepository(BaseQueryRepository, MarketingDesc
             needs_to_be_added=bool(record.get('PartTerminologyIDToBeAdded'))
         )
 
-    def _map_validation_status(self, status_value: str) -> ValidationStatus:
+    @staticmethod
+    def _map_validation_status(status_value: str) -> ValidationStatus:
         """Map database validation status to enum."""
         if not status_value:
             return ValidationStatus.MISSING

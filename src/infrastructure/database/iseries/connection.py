@@ -24,7 +24,7 @@ class IseriesDatabaseConnection(DatabaseConnection, ConnectionRetryMixin):
         self.jvm_manager = JvmManager()
 
     def _create_connection(self) -> jaydebeapi.Connection:
-        """Create new Iseries connection."""
+        """Create a new Iseries connection."""
         driver_class = "com.ibm.as400.access.AS400JDBCDriver"
         connection_url = (
             f"jdbc:as400://{self.config.server};"
@@ -75,7 +75,7 @@ class IseriesDatabaseConnection(DatabaseConnection, ConnectionRetryMixin):
                     logger.warning(f"Error closing connection: {e}")
 
     def execute_query(self, query: str, params: Optional[Dict] = None) -> List[Dict[str, Any]]:
-        """Execute SQL query and return results."""
+        """Execute an SQL query and return results."""
         if params:
             query = query.format(**params)
 
@@ -111,7 +111,7 @@ class IseriesDatabaseConnection(DatabaseConnection, ConnectionRetryMixin):
                 raise DatabaseConnectionError(f"Iseries non-query execution failed: {e}") from e
 
     def test_connection(self) -> bool:
-        """Test if connection is working."""
+        """Test if the connection is working."""
         try:
             with self.get_connection() as cursor:
                 cursor.execute("SELECT 1 FROM SYSIBM.SYSDUMMY1")
@@ -120,8 +120,9 @@ class IseriesDatabaseConnection(DatabaseConnection, ConnectionRetryMixin):
             logger.error(f"Iseries connection test failed: {e}")
             return False
 
-    def _clean_string_values(self, record: Dict[str, Any]) -> Dict[str, Any]:
-        """Clean string values from database."""
+    @staticmethod
+    def _clean_string_values(record: Dict[str, Any]) -> Dict[str, Any]:
+        """Clean string values from a database."""
         cleaned = {}
         for key, value in record.items():
             if isinstance(value, str):

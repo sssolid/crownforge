@@ -33,7 +33,7 @@ class FilemakerApplicationRepository(BaseQueryRepository, ApplicationRepository)
             return f.read()
 
     def find_by_id(self, entity_id: str) -> Optional[VehicleApplication]:
-        """Find application by ID (not applicable for applications)."""
+        """Find an application by ID (not applicable for applications)."""
         return None
 
     def find_all(self) -> List[VehicleApplication]:
@@ -58,15 +58,20 @@ class FilemakerApplicationRepository(BaseQueryRepository, ApplicationRepository)
         template_name = 'fm_application_data_active' if active_only else 'fm_application_data_all'
         return self.execute_template_query(template_name)
 
+    def get_raw_application_data(self, active_only: bool = True) -> List[Dict[str, Any]]:
+        """Get raw application data (alias for processing method)."""
+        return self.get_raw_application_data_for_processing(active_only)
+
     def save(self, entity: VehicleApplication) -> None:
-        """Save application (not implemented for read-only access)."""
+        """Save the application (not implemented for read-only access)."""
         raise NotImplementedError("Filemaker application saving not implemented")
 
     def delete(self, entity_id: str) -> None:
-        """Delete application (not implemented for read-only access)."""
+        """Delete the application (not implemented for read-only access)."""
         raise NotImplementedError("Filemaker application deletion not implemented")
 
-    def _map_to_application(self, record: Dict[str, Any]) -> VehicleApplication:
+    @staticmethod
+    def _map_to_application(record: Dict[str, Any]) -> VehicleApplication:
         """Map Filemaker record to VehicleApplication domain model."""
         from ....domain.models import YearRange
 

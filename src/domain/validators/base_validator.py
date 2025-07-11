@@ -4,7 +4,7 @@ Base validator implementation that the existing validators can inherit from.
 """
 
 import logging
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 from typing import TypeVar, Generic, List, Dict, Any
 from dataclasses import dataclass
 

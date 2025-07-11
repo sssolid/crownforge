@@ -70,7 +70,8 @@ class IseriesKitComponentsRepository(BaseQueryRepository):
         """Get assembly data for validation processes."""
         return self.execute_template_query('as400_assembly_validation_data')
 
-    def _map_to_kit_component(self, record: Dict[str, Any]) -> IseriesKitComponent:
+    @staticmethod
+    def _map_to_kit_component(record: Dict[str, Any]) -> IseriesKitComponent:
         """Map database record to kit component data."""
         return IseriesKitComponent(
             assembly=record.get('Assembly', ''),

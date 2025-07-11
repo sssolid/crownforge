@@ -4,7 +4,6 @@ AS400/Iseries-specific data validation for sales and inventory data.
 """
 
 import logging
-from typing import List, Dict, Any
 from dataclasses import dataclass
 
 from ...models import ValidationResult
@@ -74,7 +73,8 @@ class IseriesDataValidator(BaseValidator[IseriesSalesRecord]):
 
         return result
 
-    def _validate_iseries_sales_data(self, record: IseriesSalesRecord) -> ValidationResult:
+    @staticmethod
+    def _validate_iseries_sales_data(record: IseriesSalesRecord) -> ValidationResult:
         """Validate Iseries sales data."""
         result = ValidationResult(is_valid=True)
 

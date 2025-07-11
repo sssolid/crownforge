@@ -170,8 +170,8 @@ class PopularityCodeService:
         else:
             return PopularityCode.D
 
+    @staticmethod
     def _assign_default_codes(
-            self,
             sales_data: List[IseriesSalesData],
             stock_lookup: Dict[str, Any]
     ) -> List[Dict[str, Any]]:
@@ -200,7 +200,8 @@ class PopularityCodeService:
 
         return processed_data
 
-    def _write_popularity_csv(self, data: List[Dict[str, Any]], output_file: str) -> None:
+    @staticmethod
+    def _write_popularity_csv(data: List[Dict[str, Any]], output_file: str) -> None:
         """Write popularity codes to CSV file."""
         Path(output_file).parent.mkdir(parents=True, exist_ok=True)
 
@@ -234,7 +235,8 @@ class PopularityCodeService:
 
         logger.info(f"Popularity codes written to {output_file}")
 
-    def load_popularity_mapping(self, csv_file: str) -> Dict[str, str]:
+    @staticmethod
+    def load_popularity_mapping(csv_file: str) -> Dict[str, str]:
         """Load popularity codes from CSV file as a mapping."""
         mapping = {}
 

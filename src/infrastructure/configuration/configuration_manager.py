@@ -10,7 +10,7 @@ import json
 import logging
 from pathlib import Path
 from typing import Dict, Any, Union, Optional, List
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from dotenv import load_dotenv
 
 from ...domain.interfaces import ConfigurationProvider
@@ -56,7 +56,7 @@ class EnhancedConfigurationManager(ConfigurationProvider):
             logger.debug("Environment variables loaded")
 
     def reload_configuration(self) -> None:
-        """Reload configuration from file."""
+        """Reload configuration from a file."""
         try:
             if not self.config_file_path.exists():
                 logger.warning(f"Configuration file not found: {self.config_file_path}")
@@ -89,11 +89,11 @@ class EnhancedConfigurationManager(ConfigurationProvider):
         return self._get_nested_value(self._config_data, key_path, default)
 
     def get_section(self, section_name: str) -> Dict[str, Any]:
-        """Get entire configuration section."""
+        """Get an entire configuration section."""
         return self.get_value(section_name, {})
 
     def has_key(self, key_path: str) -> bool:
-        """Check if configuration key exists."""
+        """Check if a configuration key exists."""
         try:
             self._get_nested_value(self._config_data, key_path)
             return True
@@ -158,7 +158,8 @@ class EnhancedConfigurationManager(ConfigurationProvider):
 
         return errors
 
-    def _resolve_environment_variables(self, content: str) -> str:
+    @staticmethod
+    def _resolve_environment_variables(content: str) -> str:
         """Resolve environment variables in configuration content."""
         # Pattern to match ${VAR_NAME} or ${VAR_NAME:default_value}
         pattern = r'\$\{([^}:]+)(?::([^}]*))?\}'
@@ -178,7 +179,8 @@ class EnhancedConfigurationManager(ConfigurationProvider):
 
         return re.sub(pattern, replace_env_var, content)
 
-    def _get_nested_value(self, data: Dict[str, Any], key_path: str, default: Any = None) -> Any:
+    @staticmethod
+    def _get_nested_value(data: Dict[str, Any], key_path: str, default: Any = None) -> Any:
         """Get nested dictionary value using dot notation."""
         keys = key_path.split('.')
         current = data
@@ -192,7 +194,8 @@ class EnhancedConfigurationManager(ConfigurationProvider):
                 return default
             raise KeyError(f"Configuration key not found: {key_path}")
 
-    def _set_nested_value(self, data: Dict[str, Any], key_path: str, value: Any) -> None:
+    @staticmethod
+    def _set_nested_value(data: Dict[str, Any], key_path: str, value: Any) -> None:
         """Set nested dictionary value using dot notation."""
         keys = key_path.split('.')
         current = data
@@ -269,7 +272,8 @@ class EnhancedConfigurationManager(ConfigurationProvider):
 
         self._validation_rules.extend(rules)
 
-    def _get_default_configuration(self) -> Dict[str, Any]:
+    @staticmethod
+    def _get_default_configuration() -> Dict[str, Any]:
         """Get default configuration when file is not available."""
         return {
             "database": {

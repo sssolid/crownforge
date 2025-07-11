@@ -10,8 +10,8 @@ from dataclasses import dataclass
 from datetime import datetime
 
 import pandas as pd
-from openpyxl import Workbook, load_workbook
-from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+from openpyxl import Workbook
+from openpyxl.styles import Font, PatternFill
 from openpyxl.utils import get_column_letter
 from openpyxl.formatting.rule import ColorScaleRule
 
@@ -108,7 +108,8 @@ class ExcelReportGenerator(ReportGenerator):
         """Get supported output formats."""
         return ['xlsx', 'xlsm']
 
-    def _initialize_sheet_definitions(self) -> Dict[str, SheetDefinition]:
+    @staticmethod
+    def _initialize_sheet_definitions() -> Dict[str, SheetDefinition]:
         """Initialize predefined sheet definitions."""
         return {
             'correct_applications': SheetDefinition(
@@ -149,7 +150,8 @@ class ExcelReportGenerator(ReportGenerator):
             )
         }
 
-    def _should_create_sheet(self, data_key: str, sheet_data: Any) -> bool:
+    @staticmethod
+    def _should_create_sheet(_data_key: str, sheet_data: Any) -> bool:
         """Determine if sheet should be created for data."""
         if not sheet_data:
             return False
@@ -162,7 +164,8 @@ class ExcelReportGenerator(ReportGenerator):
 
         return True
 
-    def _add_summary_sheet(self, workbook: Workbook, data: Dict[str, Any]) -> None:
+    @staticmethod
+    def _add_summary_sheet(workbook: Workbook, data: Dict[str, Any]) -> None:
         """Add summary sheet to workbook."""
         ws = workbook.create_sheet("Summary", 0)
 
@@ -243,7 +246,8 @@ class ExcelReportGenerator(ReportGenerator):
             logger.error(f"Failed to create sheet for {data_key}: {e}")
             return False
 
-    def _prepare_dataframe(self, data: Any) -> pd.DataFrame:
+    @staticmethod
+    def _prepare_dataframe(data: Any) -> pd.DataFrame:
         """Convert various data formats to DataFrame."""
         if isinstance(data, pd.DataFrame):
             return data
@@ -320,7 +324,7 @@ class ExcelReportGenerator(ReportGenerator):
                 try:
                     if cell.value and len(str(cell.value)) > max_length:
                         max_length = len(str(cell.value))
-                except:
+                except TypeError:
                     pass
 
             adjusted_width = min(max_length + 2, self.config.max_column_width)
@@ -330,7 +334,8 @@ class ExcelReportGenerator(ReportGenerator):
         if sheet_def and sheet_def.conditional_formatting:
             self._apply_conditional_formatting(worksheet, df, sheet_def.conditional_formatting)
 
-    def _apply_conditional_formatting(self, worksheet, df: pd.DataFrame, formatting_rules: Dict[str, Any]) -> None:
+    @staticmethod
+    def _apply_conditional_formatting(worksheet, df: pd.DataFrame, formatting_rules: Dict[str, Any]) -> None:
         """Apply conditional formatting rules."""
         for rule_name, rule_config in formatting_rules.items():
             try:
@@ -350,7 +355,8 @@ class ExcelReportGenerator(ReportGenerator):
             except Exception as e:
                 logger.warning(f"Failed to apply conditional formatting rule {rule_name}: {e}")
 
-    def _apply_workbook_formatting(self, workbook: Workbook) -> None:
+    @staticmethod
+    def _apply_workbook_formatting(workbook: Workbook) -> None:
         """Apply workbook-level formatting."""
         # Set default font for all sheets
         for sheet in workbook.worksheets:
@@ -359,9 +365,10 @@ class ExcelReportGenerator(ReportGenerator):
                     if cell.font == Font():  # Default font
                         cell.font = Font(name='Calibri', size=11)
 
-    def _get_file_size_mb(self, file_path: str) -> float:
+    @staticmethod
+    def _get_file_size_mb(file_path: str) -> float:
         """Get file size in megabytes."""
         try:
             return Path(file_path).stat().st_size / (1024 * 1024)
-        except:
+        except TypeError:
             return 0.0

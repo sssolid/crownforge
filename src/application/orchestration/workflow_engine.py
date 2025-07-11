@@ -4,9 +4,9 @@ Workflow orchestration engine with dependency management and error handling.
 """
 
 import logging
-from typing import List, Dict, Any, Optional, Set
+from typing import List, Dict, Any, Optional
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import threading
 
@@ -236,7 +236,8 @@ class WorkflowOrchestrationEngine(WorkflowEngine):
             if self.event_publisher:
                 self.event_publisher.publish_step_failed(step_name, error_msg)
 
-    def _execute_with_timeout(self, executor: callable, timeout_seconds: int) -> ProcessingResult:
+    @staticmethod
+    def _execute_with_timeout(executor: callable, timeout_seconds: int) -> ProcessingResult:
         """Execute step with timeout."""
         with ThreadPoolExecutor(max_workers=1) as timeout_executor:
             future = timeout_executor.submit(executor)

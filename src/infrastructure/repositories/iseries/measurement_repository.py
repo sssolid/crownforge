@@ -44,7 +44,7 @@ class IseriesMeasurementRepository(BaseQueryRepository):
         return self.execute_template_query('as400_shipping_measurement_data')
 
     def map_to_measurement(self, record: Dict[str, Any]) -> Measurement:
-        """Map Iseries record to Measurement domain model."""
+        """Map Iseries record to a Measurement domain model."""
         return Measurement(
             length=self._safe_float_conversion(record.get('Length_AS400')),
             width=self._safe_float_conversion(record.get('Width_AS400')),
@@ -52,7 +52,8 @@ class IseriesMeasurementRepository(BaseQueryRepository):
             weight=self._safe_float_conversion(record.get('Weight_AS400'))
         )
 
-    def _safe_float_conversion(self, value: Any) -> Optional[float]:
+    @staticmethod
+    def _safe_float_conversion(value: Any) -> Optional[float]:
         """Safely convert value to float."""
         if value is None or value == '':
             return None

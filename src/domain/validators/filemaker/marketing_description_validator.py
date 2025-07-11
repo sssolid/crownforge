@@ -147,7 +147,8 @@ class FilemakerMarketingDescriptionValidator(BaseValidator[MarketingDescription]
 
         return result
 
-    def _validate_review_notes(self, review_notes: str) -> ValidationResult:
+    @staticmethod
+    def _validate_review_notes(review_notes: str) -> ValidationResult:
         """Validate review notes quality."""
         result = ValidationResult(is_valid=True)
 
@@ -172,3 +173,23 @@ class FilemakerMarketingDescriptionValidator(BaseValidator[MarketingDescription]
             'fallback_terminology_ids': self._fallback_required.copy(),
             'validation_system': 'Filemaker'
         }
+
+    def get_missing_descriptions(self) -> List[str]:
+        """Get list of missing description terminology IDs."""
+        return self._missing_descriptions.copy()
+
+    def get_invalid_descriptions(self) -> List[MarketingDescription]:
+        """Get list of invalid marketing descriptions."""
+        return self._invalid_descriptions.copy()
+
+    def get_fallback_required(self) -> List[str]:
+        """Get list of terminology IDs requiring fallback."""
+        return self._fallback_required.copy()
+
+    def get_validation_summary(self, entities: List[MarketingDescription] = None) -> Dict[str, Any]:
+        """Get enhanced validation summary with Filemaker-specific data."""
+        base_summary = super().get_validation_summary(entities or [])
+        filemaker_summary = self.get_filemaker_validation_summary()
+
+        # Merge the summaries
+        return {**base_summary, **filemaker_summary}

@@ -4,8 +4,7 @@ Application bootstrap and dependency injection container.
 """
 
 import logging
-from typing import Dict, Any, Optional
-from pathlib import Path
+from typing import Optional
 
 from ...domain.interfaces import ConfigurationProvider
 from ...infrastructure.configuration.configuration_manager import EnhancedConfigurationManager
@@ -109,27 +108,27 @@ class ApplicationContainer:
             'applications': WorkflowStep(
                 name='applications',
                 description='Process vehicle applications',
-                dependencies=[]
+                dependencies=step_dependencies.get('applications', [])
             ),
             'marketing_descriptions': WorkflowStep(
                 name='marketing_descriptions',
                 description='Validate marketing descriptions',
-                dependencies=[]
+                dependencies=step_dependencies.get('marketing_descriptions', [])
             ),
             'popularity_codes': WorkflowStep(
                 name='popularity_codes',
                 description='Generate popularity codes',
-                dependencies=[]
+                dependencies=step_dependencies.get('popularity_codes', [])
             ),
             'sdc_template': WorkflowStep(
                 name='sdc_template',
                 description='Generate SDC template',
-                dependencies=['marketing_descriptions', 'popularity_codes']
+                dependencies=step_dependencies.get('sdc_template', [])
             ),
             'validation_reports': WorkflowStep(
                 name='validation_reports',
                 description='Generate validation reports',
-                dependencies=['applications', 'marketing_descriptions']
+                dependencies=step_dependencies.get('validation_reports', [])
             )
         }
 

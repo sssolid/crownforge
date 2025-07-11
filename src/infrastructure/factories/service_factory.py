@@ -31,7 +31,7 @@ class ServiceFactory:
             filemaker_connection,
             config: Dict[str, Any]
     ) -> MarketingDescriptionService:
-        """Create marketing description service."""
+        """A marketing description service."""
         repository = self.repository_factory.create_filemaker_marketing_description_repository(filemaker_connection)
         validator = self.validator_factory.create_filemaker_marketing_description_validator(
             config.get('validation', {}))
@@ -44,7 +44,7 @@ class ServiceFactory:
             filemaker_connection,
             config: Dict[str, Any]
     ) -> ApplicationProcessingService:
-        """Create application processing service."""
+        """An application processing service."""
         repository = self.repository_factory.create_filemaker_application_repository(filemaker_connection)
         validator = self.validator_factory.create_vehicle_application_validator(config.get('validation', {}))
 
@@ -64,7 +64,7 @@ class ServiceFactory:
             filemaker_connection,
             marketing_service: MarketingDescriptionService
     ) -> SdcTemplateService:
-        """Create SDC template service."""
+        """An SDC template service."""
         repository = self.repository_factory.create_filemaker_marketing_description_repository(filemaker_connection)
 
         return SdcTemplateService(repository, marketing_service)
@@ -86,7 +86,7 @@ class ReportGeneratorFactory:
 
     @staticmethod
     def create_excel_report_generator(config: Dict[str, Any] = None) -> ExcelReportGenerator:
-        """Create Excel report generator."""
+        """An Excel report generator."""
         excel_config = ExcelReportConfig(**(config or {}))
         return ExcelReportGenerator(excel_config)
 

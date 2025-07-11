@@ -71,7 +71,7 @@ class FilemakerDatabaseConnection(DatabaseConnection, ConnectionRetryMixin):
                     logger.warning(f"Error closing connection: {e}")
 
     def execute_query(self, query: str, params: Optional[Dict] = None) -> List[Dict[str, Any]]:
-        """Execute SQL query and return results."""
+        """Execute an SQL query and return results."""
         if params:
             query = query.format(**params)
 
@@ -107,7 +107,7 @@ class FilemakerDatabaseConnection(DatabaseConnection, ConnectionRetryMixin):
                 raise DatabaseConnectionError(f"Filemaker non-query execution failed: {e}") from e
 
     def test_connection(self) -> bool:
-        """Test if connection is working."""
+        """Test if the connection is working."""
         try:
             with self.get_connection() as cursor:
                 cursor.execute("SELECT TableName FROM FileMaker_Tables FETCH FIRST 1 ROWS ONLY")
@@ -116,7 +116,8 @@ class FilemakerDatabaseConnection(DatabaseConnection, ConnectionRetryMixin):
             logger.error(f"Filemaker connection test failed: {e}")
             return False
 
-    def _clean_java_strings(self, record: Dict[str, Any]) -> Dict[str, Any]:
+    @staticmethod
+    def _clean_java_strings(record: Dict[str, Any]) -> Dict[str, Any]:
         """Convert Java String objects to Python strings."""
         cleaned = {}
         for key, value in record.items():

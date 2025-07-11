@@ -38,14 +38,15 @@ class IseriesConfig(DatabaseConfig):
 
 
 class DatabaseConnectionError(Exception):
-    """Database connection related errors."""
+    """Database connection-related errors."""
     pass
 
 
 class ConnectionRetryMixin:
     """Mixin for connection retry logic."""
 
-    def _execute_with_retry(self, operation_name: str, operation_func: callable, max_attempts: int = 3) -> Any:
+    @staticmethod
+    def _execute_with_retry(operation_name: str, operation_func: callable, max_attempts: int = 3) -> Any:
         """Execute operation with retry logic."""
         last_exception = None
 
@@ -130,7 +131,7 @@ class DatabaseConnection(ABC):
 
     @abstractmethod
     def execute_query(self, query: str, params: Optional[Dict] = None) -> list:
-        """Execute SQL query and return results."""
+        """Execute an SQL query and return results."""
         pass
 
     @abstractmethod
@@ -179,7 +180,7 @@ class ConnectionPool:
                     logger.warning(f"Error closing connection: {e}")
 
     def close_all(self) -> None:
-        """Close all connections in pool."""
+        """Close all connections in the pool."""
         # Close pooled connections
         for connection in self._pool:
             try:
@@ -198,31 +199,3 @@ class ConnectionPool:
 
         self._pool.clear()
         self._active_connections.clear()
-
-
-class HealthCheckMixin:
-    """Mixin for database health checking."""
-
-    def perform_health_check(self) -> Dict[str, Any]:
-        """Perform comprehensive health check."""
-        health_info = {
-            'status': 'unknown',
-            'connection_test': False,
-            'response_time_ms': None,
-            'error': None
-        }
-
-        try:
-            start_time = time.time()
-            health_info['connection_test'] = self.test_connection()
-            end_time = time.time()
-
-            health_info['response_time_ms'] = round((end_time - start_time) * 1000, 2)
-            health_info['status'] = 'healthy' if health_info['connection_test'] else 'unhealthy'
-
-        except Exception as e:
-            health_info['status'] = 'error'
-            health_info['error'] = str(e)
-            logger.error(f"Health check failed: {e}")
-
-        return health_info

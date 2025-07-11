@@ -6,7 +6,6 @@ Factory for creating database connections and repositories.
 import logging
 from typing import Dict, Any
 
-from ...domain.interfaces import DatabaseConnection
 from ..database.filemaker.connection import FilemakerDatabaseConnection
 from ..database.iseries.connection import IseriesDatabaseConnection
 from ..database.connection_manager import FilemakerConfig, IseriesConfig

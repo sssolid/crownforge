@@ -119,7 +119,9 @@ class ApplicationProcessingService:
             correct_format_applications=correct_applications,
             incorrect_format_applications=incorrect_applications,
             validation_errors=validation_errors,
-            lookup_statistics=self.lookup_service.get_usage_statistics()
+            # lookup_statistics=self.lookup_service.get_usage_statistics()
+            # Needs to be implemented
+            lookup_statistics={}
         )
 
     def _parse_application_record(self, record: Dict[str, Any]) -> List[VehicleApplication]:
@@ -151,7 +153,8 @@ class ApplicationProcessingService:
 
         return applications
 
-    def _parse_application_line(self, part_number: PartNumber, line: str, record: Dict[str, Any]) -> Optional[
+    @staticmethod
+    def _parse_application_line(part_number: PartNumber, line: str, _record: Dict[str, Any]) -> Optional[
         VehicleApplication]:
         """Parse a single application line."""
         # Simplified parsing logic - the full implementation would include
@@ -182,8 +185,9 @@ class ApplicationProcessingService:
             original_text=line
         )
 
-    def _application_to_raw_data(self, app: VehicleApplication) -> Dict[str, Any]:
-        """Convert VehicleApplication back to raw data format."""
+    @staticmethod
+    def _application_to_raw_data(app: VehicleApplication) -> Dict[str, Any]:
+        """Convert VehicleApplication back to the raw data format."""
         return {
             'AS400_NumberStripped': app.part_number.value,
             'PartApplication': app.original_text,

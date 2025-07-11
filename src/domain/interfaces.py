@@ -4,10 +4,10 @@ Domain interfaces for the automotive parts data processing application.
 """
 
 from abc import ABC, abstractmethod
-from typing import List, Dict, Any, Optional, Union
+from typing import List, Dict, Any, Optional
 from .models import (
     VehicleApplication, MarketingDescription, ValidationResult, ProcessingResult,
-    PartNumber, ApplicationLookupEntry, UpcCode, Measurement, SalesData
+    PartNumber, ApplicationLookupEntry
 )
 
 
@@ -51,7 +51,7 @@ class ApplicationRepository(Repository):
         pass
 
     @abstractmethod
-    def get_raw_application_data_for_processing(self, active_only: bool = True) -> List[Dict[str, Any]]:
+    def get_raw_application_data(self, active_only: bool = True) -> List[Dict[str, Any]]:
         """Get raw application data for processing pipeline."""
         pass
 
@@ -70,8 +70,8 @@ class MarketingDescriptionRepository(Repository):
         pass
 
     @abstractmethod
-    def get_master_data_with_descriptions_for_sdc(self) -> List[Dict[str, Any]]:
-        """Get master data with marketing descriptions for SDC template."""
+    def get_master_data_with_descriptions(self) -> List[Dict[str, Any]]:
+        """Get primary data with marketing descriptions."""
         pass
 
 
@@ -162,7 +162,7 @@ class DatabaseConnection(ABC):
 
     @abstractmethod
     def execute_query(self, query: str, params: Optional[Dict] = None) -> List[Dict[str, Any]]:
-        """Execute SQL query and return results."""
+        """Execute an SQL query and return results."""
         pass
 
     @abstractmethod

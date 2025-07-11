@@ -5,10 +5,9 @@ Core domain models for the automotive parts data processing application.
 
 import logging
 from enum import Enum
-from typing import List, Dict, Any, Optional, Union
+from typing import List, Dict, Any, Optional
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
-from abc import ABC, abstractmethod
+from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
