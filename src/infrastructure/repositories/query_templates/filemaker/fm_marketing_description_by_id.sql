@@ -4,10 +4,8 @@
 SELECT
     "md"."PartTerminologyID",
     "md"."Jeep",
-    "md"."JeepResult",
     "md"."Validation",
     "md"."NonJeep",
-    "md"."NonJeepResult",
     "md"."NonJeepValidation",
     "md"."ReviewNotes",
     "md"."PartTerminologyIDToBeAdded"

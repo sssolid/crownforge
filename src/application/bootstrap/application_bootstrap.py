@@ -147,7 +147,11 @@ class ApplicationContainer:
                 self.filemaker_connection,
                 self.config_manager.get_section('processing')
             )
-            return service.process_all_applications()
+            results = service.process_all_applications()
+
+            # Generate report
+            output_file = self.config_manager.get_value('files.application_data', 'output/application_data.xlsx')
+            return service.generate_processing_report(results, output_file)
 
         def execute_marketing_descriptions_step():
             service = self.service_factory.create_marketing_description_service(
@@ -220,11 +224,11 @@ class ApplicationContainer:
         """Shutdown application container and clean up resources."""
         try:
             # Close database connections if they have close methods
-            if hasattr(self.filemaker_connection, 'close'):
-                self.filemaker_connection.close()
+            if hasattr(self.filemaker_connection, 'close_all_connections'):
+                self.filemaker_connection.close_all_connections()
 
-            if hasattr(self.iseries_connection, 'close'):
-                self.iseries_connection.close()
+            if hasattr(self.iseries_connection, 'close_all_connections'):
+                self.iseries_connection.close_all_connections()
 
             logger.info("Application container shutdown completed")
 

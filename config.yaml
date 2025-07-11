@@ -106,7 +106,7 @@ validation:
 marketing_descriptions:
   require_jeep_description: true
   require_non_jeep_description: false
-  max_description_length: 500
+  max_description_length: 2000
   min_description_length: 10
   validate_content_quality: true
   check_placeholder_text: true

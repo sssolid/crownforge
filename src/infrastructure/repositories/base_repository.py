@@ -5,18 +5,21 @@ Base repository implementation with common functionality.
 
 import logging
 from abc import ABC, abstractmethod
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, TypeVar, Generic
 from pathlib import Path
 
 from ...domain.interfaces import DatabaseConnection
 
 logger = logging.getLogger(__name__)
 
+# Type variable for database connection types
+ConnectionType = TypeVar('ConnectionType', bound=DatabaseConnection)
 
-class BaseQueryRepository(ABC):
+
+class BaseQueryRepository(Generic[ConnectionType], ABC):
     """Base repository with query template support."""
 
-    def __init__(self, connection: DatabaseConnection, query_templates_path: str):
+    def __init__(self, connection: ConnectionType, query_templates_path: str):
         self.connection = connection
         self.query_templates_path = Path(query_templates_path)
         self._template_cache: Dict[str, str] = {}
@@ -57,17 +60,18 @@ class BaseQueryRepository(ABC):
         logger.debug("Template cache cleared")
 
 
-class BaseEntityRepository(BaseQueryRepository, ABC):
+class BaseEntityRepository(BaseQueryRepository[ConnectionType], ABC):
     """Base repository for entity operations."""
 
-    def __init__(self, connection: DatabaseConnection, query_templates_path: str, table_name: str):
+    def __init__(self, connection: ConnectionType, query_templates_path: str, table_name: str):
         super().__init__(connection, query_templates_path)
         self.table_name = table_name
 
     def find_by_id_direct(self, entity_id: str, id_column: str = "id") -> Optional[Dict[str, Any]]:
         """Find entity by ID using a direct query."""
         query = f"SELECT * FROM {self.table_name} WHERE {id_column} = ?"
-        results = self.connection.execute_query(query, [entity_id])
+        params = {"entity_id": entity_id}
+        results = self.connection.execute_query(query, params)
         return results[0] if results else None
 
     def count_all(self) -> int:
@@ -79,5 +83,6 @@ class BaseEntityRepository(BaseQueryRepository, ABC):
     def exists(self, entity_id: str, id_column: str = "id") -> bool:
         """Check if an entity exists."""
         query = f"SELECT 1 FROM {self.table_name} WHERE {id_column} = ? LIMIT 1"
-        results = self.connection.execute_query(query, [entity_id])
+        params = {"entity_id": entity_id}
+        results = self.connection.execute_query(query, params)
         return len(results) > 0

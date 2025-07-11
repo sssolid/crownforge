@@ -294,12 +294,15 @@ class ExcelReportGenerator(ReportGenerator):
             for col_idx, value in enumerate(row, 1):
                 cell = worksheet.cell(row=row_idx, column=col_idx)
 
-                # Handle different data types
-                if pd.isna(value):
-                    cell.value = None
-                elif isinstance(value, (int, float)):
-                    cell.value = value
-                else:
+                try:
+                    if value is None or (isinstance(value, float) and pd.isna(value)):
+                        cell.value = None
+                    elif isinstance(value, (int, float, str)):
+                        cell.value = value
+                    else:
+                        cell.value = str(value)
+                except Exception as e:
+                    logger.warning(f"Failed to write cell [{row_idx}, {col_idx}]: {e}")
                     cell.value = str(value)
 
     def _apply_sheet_formatting(self, worksheet, df: pd.DataFrame, sheet_def: Optional[SheetDefinition]) -> None:

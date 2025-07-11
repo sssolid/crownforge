@@ -109,6 +109,7 @@ class VehicleApplication:
 @dataclass
 class MarketingDescription:
     """Domain model for marketing descriptions."""
+    part_number: PartNumber
     part_terminology_id: str
     jeep_description: Optional[str] = None
     non_jeep_description: Optional[str] = None

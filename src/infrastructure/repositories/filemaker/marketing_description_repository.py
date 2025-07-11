@@ -8,7 +8,7 @@ from typing import List, Dict, Any, Optional
 from pathlib import Path
 
 from ...database.filemaker.connection import FilemakerDatabaseConnection
-from ....domain.models import MarketingDescription, ValidationStatus
+from ....domain.models import MarketingDescription, ValidationStatus, PartNumber
 from ....domain.interfaces import MarketingDescriptionRepository
 from ..base_repository import BaseQueryRepository
 
@@ -88,6 +88,7 @@ class FilemakerMarketingDescriptionRepository(BaseQueryRepository, MarketingDesc
     def _map_to_marketing_description(self, record: Dict[str, Any]) -> MarketingDescription:
         """Map Filemaker record to MarketingDescription domain model."""
         return MarketingDescription(
+            part_number=PartNumber(record.get('AS400_NumberStripped')),
             part_terminology_id=record.get('PartTerminologyID', ''),
             jeep_description=record.get('Jeep'),
             non_jeep_description=record.get('NonJeep'),

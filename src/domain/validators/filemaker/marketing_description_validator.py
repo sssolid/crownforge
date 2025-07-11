@@ -18,7 +18,7 @@ class FilemakerMarketingDescriptionValidationConfig(ValidationConfig):
     """Filemaker marketing description validation configuration."""
     require_jeep_description: bool = True
     require_non_jeep_description: bool = False
-    max_description_length: int = 500
+    max_description_length: int = 2000
     min_description_length: int = 10
     validate_content_quality: bool = True
     check_placeholder_text: bool = True
@@ -40,7 +40,7 @@ class FilemakerMarketingDescriptionValidator(BaseValidator[MarketingDescription]
 
         # Validate terminology ID
         if not description.part_terminology_id:
-            result.add_error("FMM001: Part terminology ID is required")
+            result.add_error(f"FMM001: Part terminology ID is required for {description.part_number}")
             return result
 
         # Validate Jeep description
@@ -142,7 +142,7 @@ class FilemakerMarketingDescriptionValidator(BaseValidator[MarketingDescription]
 
         # Check for brand-specific requirements
         if 'jeep' in description_type.lower():
-            if 'jeep' not in desc_lower and 'wrangler' not in desc_lower:
+            if 'jeep' not in desc_lower:
                 result.add_warning(f"{description_type} description may not be Jeep-specific enough")
 
         return result

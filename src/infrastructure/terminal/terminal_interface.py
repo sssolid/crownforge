@@ -1,6 +1,6 @@
 # src/infrastructure/terminal/terminal_interface.py
 """
-Terminal interface with colored output and progress bars for existing main.py.
+Terminal interface with colored output and progress bars, with fallback support.
 """
 
 import sys
@@ -10,14 +10,26 @@ from typing import Optional, Dict, Any
 from enum import Enum
 from dataclasses import dataclass
 
-from rich.console import Console
-from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TaskProgressColumn, TimeElapsedColumn, \
-    TaskID
-from rich.table import Table
-from rich.panel import Panel
-from rich.text import Text
-from rich.logging import RichHandler
-from rich.traceback import install as install_rich_traceback
+try:
+    from rich.console import Console
+    from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TaskProgressColumn, TimeElapsedColumn, \
+        TaskID
+    from rich.table import Table
+    from rich.panel import Panel
+    from rich.text import Text
+    from rich.logging import RichHandler
+    from rich.traceback import install as install_rich_traceback
+
+    RICH_AVAILABLE = True
+except ImportError:
+    RICH_AVAILABLE = False
+    Console = None
+    Progress = None
+    Table = None
+    Panel = None
+    Text = None
+    RichHandler = None
+    install_rich_traceback = None
 
 from ...domain.interfaces import ProgressTracker
 
@@ -41,17 +53,18 @@ class TerminalConfig:
 
 
 class TerminalInterface:
-    """Enhanced terminal interface that works with existing main.py."""
+    """Enhanced terminal interface with fallback for environments without rich."""
 
     def __init__(self, config: TerminalConfig = None):
         self.config = config or TerminalConfig()
-        self.console = Console()
+        self.console = Console() if RICH_AVAILABLE else None
 
-        # Install rich traceback for better error display
-        install_rich_traceback(show_locals=self.config.log_level == LogLevel.DEBUG)
+        # Install rich traceback for better error display if available
+        if RICH_AVAILABLE and install_rich_traceback:
+            install_rich_traceback(show_locals=self.config.log_level == LogLevel.DEBUG)
 
     def setup_logging(self, log_file: Optional[str] = None) -> None:
-        """Setup logging with rich formatting."""
+        """Setup logging with rich formatting if available."""
         # Clear existing handlers
         root_logger = logging.getLogger()
         root_logger.handlers.clear()
@@ -68,14 +81,22 @@ class TerminalInterface:
         else:  # DEBUG
             root_logger.setLevel(logging.DEBUG)
 
-        # Console handler with rich formatting
+        # Console handler with rich formatting if available
         if self.config.log_level != LogLevel.SILENT:
-            console_handler = RichHandler(
-                console=self.console,
-                show_time=self.config.show_timestamps,
-                show_path=self.config.log_level == LogLevel.DEBUG,
-                rich_tracebacks=True
-            )
+            if RICH_AVAILABLE and self.console:
+                console_handler = RichHandler(
+                    console=self.console,
+                    show_time=self.config.show_timestamps,
+                    show_path=self.config.log_level == LogLevel.DEBUG,
+                    rich_tracebacks=True
+                )
+            else:
+                console_handler = logging.StreamHandler()
+                formatter = logging.Formatter(
+                    '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+                )
+                console_handler.setFormatter(formatter)
+
             console_handler.setLevel(root_logger.level)
             root_logger.addHandler(console_handler)
 
@@ -96,26 +117,38 @@ class TerminalInterface:
         if self.config.log_level == LogLevel.SILENT:
             return
 
-        header_text = Text(title, style="bold blue")
-        if subtitle:
-            header_text.append(f"\n{subtitle}", style="italic")
+        if RICH_AVAILABLE and self.console:
+            header_text = Text(title, style="bold blue")
+            if subtitle:
+                header_text.append(f"\n{subtitle}", style="italic")
 
-        panel = Panel(header_text, border_style="blue", padding=(1, 2))
-        self.console.print(panel)
-        self.console.print()
+            panel = Panel(header_text, border_style="blue", padding=(1, 2))
+            self.console.print(panel)
+            self.console.print()
+        else:
+            print("=" * 80)
+            print(title)
+            if subtitle:
+                print(subtitle)
+            print("=" * 80)
 
     def print_section(self, title: str, style: str = "bold cyan") -> None:
         """Print section header."""
         if self.config.log_level == LogLevel.SILENT:
             return
-        self.console.print(f"\n[{style}]{title}[/{style}]")
+
+        if RICH_AVAILABLE and self.console:
+            self.console.print(f"\n[{style}]{title}[/{style}]")
+        else:
+            print(f"\n{title}")
 
     def print_success(self, message: str) -> None:
         """Print success message."""
         if self.config.log_level != LogLevel.SILENT:
-            self.console.print(f"[green]✅ {message}[/green]")
-        else:
-            print(f"✅ {message}")
+            if RICH_AVAILABLE and self.console:
+                self.console.print(f"[green]✅ {message}[/green]")
+            else:
+                print(f"✅ {message}")
 
     def print_error(self, message: str, file_path: str = None, line_number: int = None) -> None:
         """Print error message with optional file location."""
@@ -125,48 +158,68 @@ class TerminalInterface:
             location = f" [{Path(file_path).name}:{line_number}]"
 
         if self.config.log_level != LogLevel.SILENT:
-            self.console.print(f"[red]❌ {message}{location}[/red]")
-        else:
-            print(f"❌ {message}{location}")
+            if RICH_AVAILABLE and self.console:
+                self.console.print(f"[red]❌ {message}{location}[/red]")
+            else:
+                print(f"❌ {message}{location}")
 
     def print_warning(self, message: str) -> None:
         """Print warning message."""
         if self.config.log_level != LogLevel.SILENT:
-            self.console.print(f"[yellow]⚠️  {message}[/yellow]")
-        else:
-            print(f"⚠️  {message}")
+            if RICH_AVAILABLE and self.console:
+                self.console.print(f"[yellow]⚠️  {message}[/yellow]")
+            else:
+                print(f"⚠️  {message}")
 
     def print_info(self, message: str) -> None:
         """Print info message."""
         if self.config.log_level in [LogLevel.VERBOSE, LogLevel.DEBUG]:
-            self.console.print(f"[blue]ℹ️  {message}[/blue]")
+            if RICH_AVAILABLE and self.console:
+                self.console.print(f"[blue]ℹ️  {message}[/blue]")
+            else:
+                print(f"ℹ️  {message}")
 
     def print_results_table(self, title: str, data: Dict[str, Any]) -> None:
         """Print results in a formatted table."""
         if self.config.log_level == LogLevel.SILENT:
             return
 
-        table = Table(title=title, show_header=True, header_style="bold magenta")
-        table.add_column("Metric", style="cyan", no_wrap=True)
-        table.add_column("Value", style="green")
+        if RICH_AVAILABLE and self.console:
+            table = Table(title=title, show_header=True, header_style="bold magenta")
+            table.add_column("Metric", style="cyan", no_wrap=True)
+            table.add_column("Value", style="green")
 
-        for key, value in data.items():
-            display_key = key.replace('_', ' ').title()
+            for key, value in data.items():
+                display_key = key.replace('_', ' ').title()
 
-            if isinstance(value, float):
-                display_value = f"{value:.2f}"
-            elif isinstance(value, bool):
-                display_value = "✅" if value else "❌"
-            else:
-                display_value = str(value)
+                if isinstance(value, float):
+                    display_value = f"{value:.2f}"
+                elif isinstance(value, bool):
+                    display_value = "✅" if value else "❌"
+                else:
+                    display_value = str(value)
 
-            table.add_row(display_key, display_value)
+                table.add_row(display_key, display_value)
 
-        self.console.print(table)
+            self.console.print(table)
+        else:
+            # Fallback to simple table format
+            print(f"\n{title}")
+            print("-" * len(title))
+            for key, value in data.items():
+                display_key = key.replace('_', ' ').title()
+                if isinstance(value, bool):
+                    display_value = "✅" if value else "❌"
+                else:
+                    display_value = str(value)
+                print(f"{display_key:<25} {display_value}")
 
-    def create_progress_tracker(self) -> 'RichProgressTracker':
+    def create_progress_tracker(self) -> 'ProgressTracker':
         """Create a progress tracker."""
-        return RichProgressTracker(self)
+        if RICH_AVAILABLE:
+            return RichProgressTracker(self)
+        else:
+            return FallbackProgressTracker(self)
 
 
 class RichProgressTracker(ProgressTracker):
@@ -175,7 +228,7 @@ class RichProgressTracker(ProgressTracker):
     def __init__(self, terminal: TerminalInterface):
         self.terminal = terminal
         self.progress: Optional[Progress] = None
-        self.task_id: Optional[TaskID] = None
+        self.task_id: Optional[int] = None
 
     def start(self, total_items: int, description: str = "") -> None:
         """Start progress tracking."""
@@ -186,17 +239,18 @@ class RichProgressTracker(ProgressTracker):
             self.terminal.print_info(f"Starting: {description}")
             return
 
-        self.progress = Progress(
-            SpinnerColumn(),
-            TextColumn("[progress.description]{task.description}"),
-            BarColumn(),
-            TaskProgressColumn(),
-            TimeElapsedColumn(),
-            console=self.terminal.console
-        )
+        if RICH_AVAILABLE and self.terminal.console:
+            self.progress = Progress(
+                SpinnerColumn(),
+                TextColumn("[progress.description]{task.description}"),
+                BarColumn(),
+                TaskProgressColumn(),
+                TimeElapsedColumn(),
+                console=self.terminal.console
+            )
 
-        self.progress.start()
-        self.task_id = self.progress.add_task(description, total=total_items)
+            self.progress.start()
+            self.task_id = self.progress.add_task(description, total=total_items)
 
     def update(self, items_completed: int) -> None:
         """Update progress."""
@@ -223,6 +277,43 @@ class RichProgressTracker(ProgressTracker):
             self.task_id = None
 
 
+class FallbackProgressTracker(ProgressTracker):
+    """Fallback progress tracker for environments without Rich."""
+
+    def __init__(self, terminal: TerminalInterface):
+        self.terminal = terminal
+        self.current_description = ""
+        self.total_items = 0
+        self.completed_items = 0
+
+    def start(self, total_items: int, description: str = "") -> None:
+        """Start progress tracking."""
+        self.total_items = total_items
+        self.current_description = description
+        self.completed_items = 0
+        if self.terminal.config.log_level != LogLevel.SILENT:
+            print(f"Starting: {description}")
+
+    def update(self, items_completed: int) -> None:
+        """Update progress."""
+        self.completed_items = items_completed
+        if self.terminal.config.log_level in [LogLevel.VERBOSE, LogLevel.DEBUG]:
+            percentage = (items_completed / self.total_items * 100) if self.total_items > 0 else 0
+            print(f"Progress: {items_completed}/{self.total_items} ({percentage:.1f}%)")
+
+    def set_description(self, description: str) -> None:
+        """Set current operation description."""
+        self.current_description = description
+        if self.terminal.config.log_level in [LogLevel.VERBOSE, LogLevel.DEBUG]:
+            print(f"Operation: {description}")
+
+    def finish(self, success: bool = True) -> None:
+        """Finish progress tracking."""
+        if self.terminal.config.log_level != LogLevel.SILENT:
+            status = "✅ Completed" if success else "❌ Failed"
+            print(f"{status}: {self.current_description}")
+
+
 def get_terminal_interface() -> TerminalInterface:
     """Get terminal interface instance with appropriate configuration."""
     # Determine log level from command line args or environment
@@ -239,8 +330,8 @@ def get_terminal_interface() -> TerminalInterface:
 
     config = TerminalConfig(
         log_level=log_level,
-        use_colors=True,
-        show_progress_bars=True,
+        use_colors=RICH_AVAILABLE,
+        show_progress_bars=RICH_AVAILABLE,
         show_timestamps=log_level == LogLevel.DEBUG
     )
 

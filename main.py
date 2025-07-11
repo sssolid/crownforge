@@ -31,6 +31,8 @@ try:
     TERMINAL_INTERFACE_AVAILABLE = True
 except ImportError:
     TERMINAL_INTERFACE_AVAILABLE = False
+    get_terminal_interface = None
+    LogLevel = None
     print("Warning: Terminal interface not available, using basic output")
 
 # Global references for graceful shutdown
@@ -56,6 +58,38 @@ def setup_signal_handlers() -> None:
     signal.signal(signal.SIGTERM, signal_handler)
 
 
+def handle_exception_with_traceback(exception: Exception, operation_context: str) -> None:
+    """Common exception handling with traceback extraction."""
+    # Get file and line number from traceback
+    tb = traceback.extract_tb(exception.__traceback__)
+    file_path = None
+    line_number = None
+
+    if tb:
+        last_frame = tb[-1]
+        file_path = last_frame.filename
+        line_number = last_frame.lineno
+
+    if terminal_interface and TERMINAL_INTERFACE_AVAILABLE:
+        terminal_interface.print_error(
+            f"{operation_context}: {exception}",
+            file_path,
+            line_number
+        )
+
+        # Show full traceback in verbose mode
+        if terminal_interface.config.log_level in [LogLevel.VERBOSE, LogLevel.DEBUG]:
+            if terminal_interface.console:
+                terminal_interface.console.print_exception()
+            else:
+                traceback.print_exc()
+    else:
+        print(f"💥 {operation_context}: {exception}")
+        if file_path and line_number:
+            print(f"   Location: {Path(file_path).name}:{line_number}")
+        traceback.print_exc()
+
+
 def validate_environment(config_manager: EnhancedConfigurationManager) -> bool:
     """Validate application environment and dependencies."""
     if terminal_interface and TERMINAL_INTERFACE_AVAILABLE:
@@ -63,7 +97,7 @@ def validate_environment(config_manager: EnhancedConfigurationManager) -> bool:
     else:
         print("\n=== Environment Validation ===")
 
-    errors = []
+    validation_errors = []
     warnings = []
 
     # Check required files
@@ -75,7 +109,7 @@ def validate_environment(config_manager: EnhancedConfigurationManager) -> bool:
 
     for name, file_path in required_files.items():
         if file_path and not Path(file_path).exists():
-            errors.append(f"{name} not found: {file_path}")
+            validation_errors.append(f"{name} not found: {file_path}")
 
     # Check Python dependencies
     try:
@@ -87,8 +121,8 @@ def validate_environment(config_manager: EnhancedConfigurationManager) -> bool:
             terminal_interface.print_success("Python dependencies verified")
         else:
             print("✅ Python dependencies verified")
-    except ImportError as err:
-        errors.append(f"Missing Python dependency: {err}")
+    except ImportError as import_error:
+        validation_errors.append(f"Missing Python dependency: {import_error}")
 
     # Validate configuration
     config_errors = config_manager.validate_configuration()
@@ -96,14 +130,14 @@ def validate_environment(config_manager: EnhancedConfigurationManager) -> bool:
         warnings.extend(config_errors)
 
     # Report results
-    if errors:
+    if validation_errors:
         if terminal_interface and TERMINAL_INTERFACE_AVAILABLE:
             terminal_interface.print_error("Environment validation failed:")
-            for error in errors:
+            for error in validation_errors:
                 terminal_interface.print_error(f"  • {error}")
         else:
             print("❌ Environment validation failed:")
-            for error in errors:
+            for error in validation_errors:
                 print(f"  • {error}")
         return False
 
@@ -142,11 +176,11 @@ def create_sample_configuration(output_path: str = "config.yaml") -> int:
             print(f"✅ Sample configuration created: {output_path}")
             print("📝 Please edit the configuration file with your specific settings.")
         return 0
-    except Exception as e:
+    except Exception as config_error:
         if terminal_interface and TERMINAL_INTERFACE_AVAILABLE:
-            terminal_interface.print_error(f"Failed to create configuration: {e}")
+            terminal_interface.print_error(f"Failed to create configuration: {config_error}")
         else:
-            print(f"❌ Failed to create configuration: {e}")
+            print(f"❌ Failed to create configuration: {config_error}")
         return 1
 
 
@@ -159,16 +193,16 @@ def validate_configuration_file(config_path: str) -> int:
 
     try:
         config_manager = EnhancedConfigurationManager(config_path)
-        errors = config_manager.validate_configuration()
+        config_validation_errors = config_manager.validate_configuration()
 
-        if errors:
+        if config_validation_errors:
             if terminal_interface and TERMINAL_INTERFACE_AVAILABLE:
                 terminal_interface.print_error("Configuration validation failed:")
-                for error in errors:
+                for error in config_validation_errors:
                     terminal_interface.print_error(f"  • {error}")
             else:
                 print("❌ Configuration validation failed:")
-                for error in errors:
+                for error in config_validation_errors:
                     print(f"  • {error}")
             return 1
         else:
@@ -178,11 +212,11 @@ def validate_configuration_file(config_path: str) -> int:
                 print("✅ Configuration validation passed!")
             return 0
 
-    except Exception as e:
+    except Exception as config_error:
         if terminal_interface and TERMINAL_INTERFACE_AVAILABLE:
-            terminal_interface.print_error(f"Configuration validation error: {e}")
+            terminal_interface.print_error(f"Configuration validation error: {config_error}")
         else:
-            print(f"❌ Configuration validation error: {e}")
+            print(f"❌ Configuration validation error: {config_error}")
         return 1
 
 
@@ -238,11 +272,11 @@ def list_workflow_steps(config_path: str) -> int:
 
         return 0
 
-    except Exception as e:
+    except Exception as workflow_error:
         if terminal_interface and TERMINAL_INTERFACE_AVAILABLE:
-            terminal_interface.print_error(f"Error reading workflow configuration: {e}")
+            terminal_interface.print_error(f"Error reading workflow configuration: {workflow_error}")
         else:
-            print(f"❌ Error reading workflow configuration: {e}")
+            print(f"❌ Error reading workflow configuration: {workflow_error}")
         return 1
 
 
@@ -366,36 +400,8 @@ def run_application_workflow(config_path: str, args: argparse.Namespace) -> bool
         else:
             print("⏹️  Workflow interrupted by user")
         return False
-    except Exception as e:
-        # Get file and line number from traceback
-        tb = traceback.extract_tb(e.__traceback__)
-        if tb:
-            last_frame = tb[-1]
-            file_path = last_frame.filename
-            line_number = last_frame.lineno
-        else:
-            file_path = None
-            line_number = None
-
-        if terminal_interface and TERMINAL_INTERFACE_AVAILABLE:
-            terminal_interface.print_error(
-                f"Unexpected error during workflow: {e}",
-                file_path,
-                line_number
-            )
-
-            # Show full traceback in verbose mode
-            if terminal_interface.config.log_level in [LogLevel.VERBOSE, LogLevel.DEBUG]:
-                if terminal_interface.console:
-                    terminal_interface.console.print_exception()
-                else:
-                    traceback.print_exc()
-        else:
-            print(f"💥 Unexpected error during workflow: {e}")
-            if file_path and line_number:
-                print(f"   Location: {Path(file_path).name}:{line_number}")
-            traceback.print_exc()
-
+    except Exception as workflow_exception:
+        handle_exception_with_traceback(workflow_exception, "Unexpected error during workflow")
         return False
     finally:
         # Cleanup
@@ -532,40 +538,17 @@ def main() -> int:
 
         return 0 if success else 1
 
-    except Exception as e:
-        # Get file and line number from traceback
-        tb = traceback.extract_tb(e.__traceback__)
-        if tb:
-            last_frame = tb[-1]
-            file_path = last_frame.filename
-            line_number = last_frame.lineno
-        else:
-            file_path = None
-            line_number = None
-
-        if terminal_interface and TERMINAL_INTERFACE_AVAILABLE:
-            terminal_interface.print_error(f"Fatal error: {e}", file_path, line_number)
-
-            # Show full traceback in verbose/debug mode
-            if terminal_interface.config.log_level in [LogLevel.VERBOSE, LogLevel.DEBUG]:
-                if terminal_interface.console:
-                    terminal_interface.console.print_exception()
-                else:
-                    traceback.print_exc()
-        else:
-            print(f"💥 Fatal error: {e}")
-            if file_path and line_number:
-                print(f"   Location: {Path(file_path).name}:{line_number}")
-            traceback.print_exc()
-
+    except Exception as fatal_exception:
+        handle_exception_with_traceback(fatal_exception, "Fatal error")
         return 1
+
 
 if __name__ == '__main__':
     try:
         main()
     except KeyboardInterrupt:
         sys.exit(1)
-    except Exception as e:
+    except Exception as main_exception:
         traceback.print_exc()
         sys.exit(1)
     finally:

@@ -2,13 +2,12 @@
   Filemaker query for all marketing descriptions with master data
  */
 SELECT
+    "m"."AS400_NumberStripped",
     "m"."SDC_PartTerminologyID",
     "md"."PartTerminologyID",
     "md"."Jeep",
-    "md"."JeepResult",
     "md"."Validation",
     "md"."NonJeep",
-    "md"."NonJeepResult",
     "md"."NonJeepValidation",
     "md"."ReviewNotes",
     "md"."PartTerminologyIDToBeAdded"

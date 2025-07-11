@@ -1,13 +1,15 @@
 # src/infrastructure/database/connection_manager.py
 """
-Database connection management with configuration and retry logic.
+Database connection management with configuration, retry logic, and pooling.
 """
 
 import time
 import logging
+import threading
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, List
 from dataclasses import dataclass
+from contextlib import contextmanager
 
 logger = logging.getLogger(__name__)
 
@@ -130,7 +132,7 @@ class DatabaseConnection(ABC):
     """Abstract base class for database connections."""
 
     @abstractmethod
-    def execute_query(self, query: str, params: Optional[Dict] = None) -> list:
+    def execute_query(self, query: str, params: Optional[Dict] = None) -> List[Dict[str, Any]]:
         """Execute an SQL query and return results."""
         pass
 
@@ -146,56 +148,80 @@ class DatabaseConnection(ABC):
 
 
 class ConnectionPool:
-    """Simple connection pooling for database connections."""
+    """Thread-safe connection pooling for database connections."""
 
     def __init__(self, connection_factory: callable, max_connections: int = 5):
         self.connection_factory = connection_factory
         self.max_connections = max_connections
-        self._pool = []
+        self._pool: List[Any] = []
         self._active_connections = set()
+        self._lock = threading.Lock()
+        self._created_count = 0
 
+    @contextmanager
     def get_connection(self):
-        """Get connection from pool."""
-        if self._pool:
-            connection = self._pool.pop()
-        else:
-            connection = self.connection_factory()
+        """Get connection from pool with context manager."""
+        connection = None
+        try:
+            connection = self._acquire_connection()
+            yield connection
+        finally:
+            if connection:
+                self._release_connection(connection)
 
-        self._active_connections.add(connection)
-        return connection
+    def _acquire_connection(self):
+        """Acquire a connection from the pool."""
+        with self._lock:
+            if self._pool:
+                connection = self._pool.pop()
+                self._active_connections.add(connection)
+                return connection
+            elif self._created_count < self.max_connections:
+                connection = self._create_new_connection()
+                self._active_connections.add(connection)
+                self._created_count += 1
+                return connection
+            else:
+                # Wait for a connection to become available
+                # For simplicity, create a new one (could implement waiting)
+                connection = self._create_new_connection()
+                return connection
 
-    def return_connection(self, connection) -> None:
+    def _release_connection(self, connection) -> None:
         """Return connection to pool."""
-        if connection in self._active_connections:
-            self._active_connections.remove(connection)
+        with self._lock:
+            if connection in self._active_connections:
+                self._active_connections.remove(connection)
 
             if len(self._pool) < self.max_connections:
                 self._pool.append(connection)
             else:
                 # Close excess connections
-                try:
-                    if hasattr(connection, 'close'):
-                        connection.close()
-                except Exception as e:
-                    logger.warning(f"Error closing connection: {e}")
+                self._close_connection(connection)
+
+    def _create_new_connection(self):
+        """Create a new database connection."""
+        return self.connection_factory()
+
+    def _close_connection(self, connection) -> None:
+        """Close a database connection."""
+        try:
+            if hasattr(connection, 'close'):
+                connection.close()
+        except Exception as e:
+            logger.warning(f"Error closing connection: {e}")
 
     def close_all(self) -> None:
         """Close all connections in the pool."""
-        # Close pooled connections
-        for connection in self._pool:
-            try:
-                if hasattr(connection, 'close'):
-                    connection.close()
-            except Exception as e:
-                logger.warning(f"Error closing pooled connection: {e}")
+        with self._lock:
+            # Close pooled connections
+            for connection in self._pool:
+                self._close_connection(connection)
 
-        # Close active connections
-        for connection in self._active_connections.copy():
-            try:
-                if hasattr(connection, 'close'):
-                    connection.close()
-            except Exception as e:
-                logger.warning(f"Error closing active connection: {e}")
+            # Close active connections
+            for connection in self._active_connections.copy():
+                self._close_connection(connection)
 
-        self._pool.clear()
-        self._active_connections.clear()
+            self._pool.clear()
+            self._active_connections.clear()
+            self._created_count = 0
