@@ -283,6 +283,7 @@ def list_workflow_steps(config_path: str) -> int:
 def run_application_workflow(config_path: str, args: argparse.Namespace) -> bool:
     """Run the main application workflow using existing bootstrap."""
     global app_container
+    progress = None
 
     try:
         if terminal_interface and TERMINAL_INTERFACE_AVAILABLE:
@@ -399,9 +400,13 @@ def run_application_workflow(config_path: str, args: argparse.Namespace) -> bool
             terminal_interface.print_warning("Workflow interrupted by user")
         else:
             print("⏹️  Workflow interrupted by user")
+        if progress:
+            progress.finish(False)
         return False
     except Exception as workflow_exception:
         handle_exception_with_traceback(workflow_exception, "Unexpected error during workflow")
+        if progress:
+            progress.finish(False)
         return False
     finally:
         # Cleanup
